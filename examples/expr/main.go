@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	r := bear.Select("user", "id", "age", "role").
-		WhereWithTuple(expr.Equal("role", expr.Value("developer")).Tuple()).
-		WhereWithTuple(expr.Between("age", expr.Value(20), expr.Value(30)).Tuple()).
-		Build()
-	fmt.Printf("%+v", r)
+	e := expr.Empty()
+	e = e.And(expr.Equal("role", expr.Value("developer")))
+	e = e.And(expr.Between("age", expr.Value(20), expr.Value(30)))
+	s := bear.Select("user", "id", "age", "role").Where(e.Tuple()).Build()
+	fmt.Printf("%+v", s)
 }

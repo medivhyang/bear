@@ -17,6 +17,10 @@ func New(template string, values ...interface{}) Expr {
 	}
 }
 
+func Empty() Expr {
+	return Expr{ }
+}
+
 func Value(values ...interface{}) Expr {
 	return Expr{
 		Values: values,

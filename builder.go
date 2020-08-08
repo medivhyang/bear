@@ -72,22 +72,12 @@ func (b *QueryBuilder) Fields(fields ...Segment) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Where(template string, values ...interface{}) *QueryBuilder {
+func (b *QueryBuilder) Where(template string, values []interface{}) *QueryBuilder {
 	b.where.Append(Segment{Template: template, Values: values})
 	return b
 }
 
-func (b *QueryBuilder) WhereWithTuple(template string, values []interface{}) *QueryBuilder {
-	b.where.Append(Segment{Template: template, Values: values})
-	return b
-}
-
-func (b *QueryBuilder) Having(template string, values ...interface{}) *QueryBuilder {
-	b.having.Append(Segment{Template: template, Values: values})
-	return b
-}
-
-func (b *QueryBuilder) HavingWithTuple(template string, values []interface{}) *QueryBuilder {
+func (b *QueryBuilder) Having(template string, values []interface{}) *QueryBuilder {
 	b.having.Append(Segment{Template: template, Values: values})
 	return b
 }
@@ -179,12 +169,7 @@ type CommandBuilder struct {
 	where  ConditionBuilder
 }
 
-func (b *CommandBuilder) Where(template string, values ...interface{}) *CommandBuilder {
-	b.where.Append(Segment{Template: template, Values: values})
-	return b
-}
-
-func (b *CommandBuilder) WhereWithTuple(template string, values []interface{}) *CommandBuilder {
+func (b *CommandBuilder) Where(template string, values []interface{}) *CommandBuilder {
 	b.where.Append(Segment{Template: template, Values: values})
 	return b
 }
