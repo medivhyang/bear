@@ -55,13 +55,12 @@ func (e Expr) Or(other Expr) Expr {
 
 func Equal(name string, value Expr) Expr {
 	result := Expr{}
+	result.Values = append(result.Values, value.Values...)
 	if len(value.Template) == 0 {
 		result.Template = fmt.Sprintf("%s = ?", name)
-		result.Values = append(result.Values, value.Values...)
 		return result
 	}
 	result.Template = fmt.Sprintf("%s = (%s)", name, value.Template)
-	result.Values = append(result.Values, value.Values...)
 	return result
 }
 
@@ -93,8 +92,8 @@ func In(name string, value Expr) Expr {
 
 func Between(name string, v1 Expr, v2 Expr) Expr {
 	result := Expr{}
-	result.Values = append(result.Values, v1.Values)
-	result.Values = append(result.Values, v2.Values)
+	result.Values = append(result.Values, v1.Values...)
+	result.Values = append(result.Values, v2.Values...)
 	if len(v1.Template) == 0 {
 		result.Template = fmt.Sprintf("%s between ?", name)
 	} else {
