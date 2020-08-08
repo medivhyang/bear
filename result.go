@@ -119,8 +119,8 @@ func (r *QueryResult) StructSlice(structSlicePtr interface{}) error {
 
 	for r.Rows.Next() {
 		structValue := reflect.New(structSliceValue.Type().Elem())
-		for i, v := range columns {
-			values[i] = structValue.FieldByName(v).Addr().Interface()
+		for i, name := range columns {
+			values[i] = structValue.FieldByName(name).Addr().Interface()
 		}
 		if err := r.Rows.Scan(values...); err != nil {
 			return err

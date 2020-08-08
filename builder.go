@@ -19,7 +19,7 @@ type Segment struct {
 	Values   []interface{}
 }
 
-func New(template string, values ...interface{}) *Segment {
+func New(template string, values []interface{}) *Segment {
 	return &Segment{Template: template, Values: values}
 }
 

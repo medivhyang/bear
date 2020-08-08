@@ -10,7 +10,7 @@ type Expr struct {
 	Values   []interface{}
 }
 
-func New(template string, values ...interface{}) Expr {
+func New(template string, values []interface{}) Expr {
 	return Expr{
 		Template: template,
 		Values:   values,
@@ -18,7 +18,7 @@ func New(template string, values ...interface{}) Expr {
 }
 
 func Empty() Expr {
-	return Expr{ }
+	return Expr{}
 }
 
 func Value(values ...interface{}) Expr {
