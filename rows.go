@@ -15,6 +15,9 @@ func WrapRows(rows *sql.Rows) *Rows {
 }
 
 func (r *Rows) Scan(callback func(scan func(...interface{}) error, stop func()) error) error {
+	if callback == nil {
+		return nil
+	}
 	stop := false
 	stopFunc := func() { stop = true }
 	for r.Raw.Next() {
