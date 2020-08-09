@@ -92,15 +92,6 @@ func (b *QueryBuilder) OrderBy(names ...string) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) mappingFields() []string {
-	var result []string
-	for _, field := range b.fields {
-		splits := strings.Split(field.Template, " ")
-		result = append(result, splits[len(splits)-1])
-	}
-	return result
-}
-
 func (b *QueryBuilder) Build() Segment {
 	result := Segment{}
 
@@ -147,18 +138,26 @@ type Querier interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
-func (b *QueryBuilder) Query(querier Querier) *QueryResult {
+func (b *QueryBuilder) Query(querier Querier) (*Rows, error) {
 	s := b.Build()
-	return WrapQueryResult(querier.Query(s.Template, s.Values...))
+	rows, err := querier.Query(s.Template, s.Values...)
+	if err != nil {
+		return nil, err
+	}
+	return WrapRows(rows), nil
 }
 
 type WithContextQuerier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
-func (b *QueryBuilder) QueryWithContext(querier WithContextQuerier, ctx context.Context) *QueryResult {
+func (b *QueryBuilder) QueryWithContext(querier WithContextQuerier, ctx context.Context) (*Rows, error) {
 	s := b.Build()
-	return WrapQueryResult(querier.QueryContext(ctx, s.Template, s.Values...))
+	rows, err := querier.QueryContext(ctx, s.Template, s.Values...)
+	if err != nil {
+		return nil, err
+	}
+	return WrapRows(rows), nil
 }
 
 type CommandBuilder struct {
@@ -216,18 +215,26 @@ type Executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-func (b *CommandBuilder) Execute(exectutor Executor) *CommandResult {
+func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
 	s := b.Build()
-	return WrapCommandResult(exectutor.Exec(s.Template, s.Values...))
+	result, err := exectutor.Exec(s.Template, s.Values...)
+	if err != nil {
+		return nil, err
+	}
+	return WrapResult(result), nil
 }
 
 type WithContextExectutor interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 }
 
-func (b *CommandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) *CommandResult {
+func (b *CommandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) (*Result, error) {
 	s := b.Build()
-	return WrapCommandResult(exectutor.ExecContext(ctx, s.Template, s.Values...))
+	result, err := exectutor.ExecContext(ctx, s.Template, s.Values...)
+	if err != nil {
+		return nil, err
+	}
+	return WrapResult(result), nil
 }
 
 type ConditionBuilder struct {
