@@ -14,17 +14,17 @@ func WrapRows(rows *sql.Rows) *Rows {
 	return &Rows{Raw: rows}
 }
 
-func (r *Rows) Scan(callback func(scan func(...interface{}) error, stop func()) error) error {
+func (r *Rows) Scan(callback func(scan func(...interface{}) error, abort func()) error) error {
 	if callback == nil {
 		return nil
 	}
-	stop := false
-	stopFunc := func() { stop = true }
+	abort := false
+	abortFunc := func() { abort = true }
 	for r.Raw.Next() {
-		if err := callback(r.Raw.Scan, stopFunc); err != nil {
+		if err := callback(r.Raw.Scan, abortFunc); err != nil {
 			return err
 		}
-		if stop {
+		if abort {
 			break
 		}
 	}
@@ -153,4 +153,3 @@ func (r *Rows) Struct(structPtr interface{}) error {
 
 	return nil
 }
-

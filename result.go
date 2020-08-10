@@ -4,7 +4,6 @@ import (
 	"database/sql"
 )
 
-
 type Result struct {
 	Raw sql.Result
 }
