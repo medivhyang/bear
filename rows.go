@@ -109,14 +109,20 @@ func (r *Rows) StructSlice(structSlicePtr interface{}) error {
 	values := make([]interface{}, len(columns))
 
 	for r.Raw.Next() {
-		structValue := reflect.New(structSliceValue.Type().Elem())
-		for i, name := range columns {
-			values[i] = structValue.FieldByName(name).Addr().Interface()
+		structValue := reflect.New(structSliceValue.Type().Elem()).Elem()
+		for i, column := range columns {
+			fieldIndex, ok := findStructFieldIndex(structValue.Type(), column)
+			if !ok {
+				var v interface{}
+				values[i] = &v
+				continue
+			}
+			values[i] = structValue.Field(fieldIndex).Addr().Interface()
 		}
 		if err := r.Raw.Scan(values...); err != nil {
 			return err
 		}
-		reflect.Append(structSliceValue, structValue)
+		structSliceValue.Set(reflect.Append(structSliceValue, structValue))
 	}
 	if err := r.Raw.Close(); err != nil {
 		return err
@@ -137,8 +143,14 @@ func (r *Rows) Struct(structPtr interface{}) error {
 		return err
 	}
 	values := make([]interface{}, len(columns))
-	for i, v := range columns {
-		values[i] = structValue.FieldByName(v).Addr().Interface()
+	for i, column := range columns {
+		fieldIndex, ok := findStructFieldIndex(structValue.Type(), column)
+		if !ok {
+			var v interface{}
+			values[i] = &v
+			continue
+		}
+		values[i] = structValue.Field(fieldIndex).Addr().Interface()
 	}
 
 	if !r.Raw.Next() {

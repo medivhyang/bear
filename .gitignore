@@ -16,3 +16,4 @@
 
 .idea
 examples/init/data.db
+**/*.db
