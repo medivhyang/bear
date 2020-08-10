@@ -2,30 +2,16 @@ package bear
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 )
 
 const (
-	ActionSelect = "select"
-	ActionInsert = "insert"
-	ActionUpdate = "update"
-	ActionDelete = "delete"
+	actionSelect = "select"
+	actionInsert = "insert"
+	actionUpdate = "update"
+	actionDelete = "delete"
 )
-
-type Segment struct {
-	Template string
-	Values   []interface{}
-}
-
-func New(template string, values []interface{}) *Segment {
-	return &Segment{Template: template, Values: values}
-}
-
-func (s Segment) Tuple() (string, []interface{}) {
-	return s.Template, s.Values
-}
 
 func Select(table string, fields ...string) *QueryBuilder {
 	b := QueryBuilder{table: table}
@@ -36,7 +22,7 @@ func Select(table string, fields ...string) *QueryBuilder {
 }
 
 func Insert(table string, pairs map[string]interface{}) *CommandBuilder {
-	b := &CommandBuilder{table: table, action: ActionInsert}
+	b := &CommandBuilder{table: table, action: actionInsert}
 	for k, v := range pairs {
 		b.names = append(b.names, k)
 		b.values = append(b.values, v)
@@ -45,7 +31,7 @@ func Insert(table string, pairs map[string]interface{}) *CommandBuilder {
 }
 
 func Update(table string, pairs map[string]interface{}) *CommandBuilder {
-	b := &CommandBuilder{table: table, action: ActionUpdate}
+	b := &CommandBuilder{table: table, action: actionUpdate}
 	for k, v := range pairs {
 		b.names = append(b.names, k)
 		b.values = append(b.values, v)
@@ -54,7 +40,7 @@ func Update(table string, pairs map[string]interface{}) *CommandBuilder {
 }
 
 func Delete(table string) *CommandBuilder {
-	b := &CommandBuilder{table: table, action: ActionDelete}
+	b := &CommandBuilder{table: table, action: actionDelete}
 	return b
 }
 
@@ -134,10 +120,6 @@ func (b *QueryBuilder) As(alias string) Segment {
 	return s
 }
 
-type Querier interface {
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-}
-
 func (b *QueryBuilder) Query(querier Querier) (*Rows, error) {
 	s := b.Build()
 	rows, err := querier.Query(s.Template, s.Values...)
@@ -145,10 +127,6 @@ func (b *QueryBuilder) Query(querier Querier) (*Rows, error) {
 		return nil, err
 	}
 	return WrapRows(rows), nil
-}
-
-type WithContextQuerier interface {
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
 func (b *QueryBuilder) QueryWithContext(querier WithContextQuerier, ctx context.Context) (*Rows, error) {
@@ -177,7 +155,7 @@ func (b *CommandBuilder) Build() Segment {
 	result := Segment{}
 
 	switch b.action {
-	case ActionInsert:
+	case actionInsert:
 		var holders []string
 		for i := 0; i < len(b.values); i++ {
 			holders = append(holders, "?")
@@ -188,7 +166,7 @@ func (b *CommandBuilder) Build() Segment {
 			strings.Join(holders, ","),
 		)
 		result.Values = append(result.Values, b.values...)
-	case ActionUpdate:
+	case actionUpdate:
 		var pairs []string
 		for i := 0; i < len(b.names); i++ {
 			pairs = append(pairs, fmt.Sprintf("%s=?", b.names[i]))
@@ -198,7 +176,7 @@ func (b *CommandBuilder) Build() Segment {
 			strings.Join(pairs, ","),
 		)
 		result.Values = append(result.Values, b.values...)
-	case ActionDelete:
+	case actionDelete:
 		result.Template = fmt.Sprintf("delete from %s", b.table)
 	}
 
@@ -211,10 +189,6 @@ func (b *CommandBuilder) Build() Segment {
 	return result
 }
 
-type Executor interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-}
-
 func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
 	s := b.Build()
 	result, err := exectutor.Exec(s.Template, s.Values...)
@@ -222,10 +196,6 @@ func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
 		return nil, err
 	}
 	return WrapResult(result), nil
-}
-
-type WithContextExectutor interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 }
 
 func (b *CommandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) (*Result, error) {
