@@ -11,13 +11,11 @@ type Tabler interface {
 }
 
 const (
-	tagKey                    = "bear"
-	tagNestedKeyIgnore        = "-"
-	tagNestedKeyName          = "name"
-	tagNestedKeyType          = "type"
-	tagNestedKeyPK            = "pk"
-	tagNestedKeyAutoIncrement = "auto"
-	tagNestedKeySuffix        = "suffix"
+	tagKey             = "bear"
+	tagNestedKeyIgnore = "-"
+	tagNestedKeyName   = "name"
+	tagNestedKeyType   = "type"
+	tagNestedKeySuffix = "suffix"
 )
 
 type structField struct {
