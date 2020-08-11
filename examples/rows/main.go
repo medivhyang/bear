@@ -20,7 +20,7 @@ func main() {
 }
 
 func demoMapSlice() {
-	rows, err := bear.Select("user", bear.DBFieldNames(user{})...).Query(getDB())
+	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +34,7 @@ func demoMapSlice() {
 }
 
 func demoMap() {
-	rows, err := bear.Select("user", bear.DBFieldNames(user{})...).Query(getDB())
+	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +46,7 @@ func demoMap() {
 }
 
 func demoStructSlice() {
-	rows, err := bear.Select("user", bear.DBFieldNames(user{})...).Query(getDB())
+	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +60,7 @@ func demoStructSlice() {
 }
 
 func demoStruct() {
-	rows, err := bear.Select("user", bear.DBFieldNames(user{})...).Query(getDB())
+	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
 	if err != nil {
 		panic(err)
 	}

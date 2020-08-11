@@ -2,23 +2,25 @@ package expr
 
 import (
 	"fmt"
+	"github.com/medivhyang/bear"
 	"strings"
 )
 
-type Expr struct {
-	Template string
-	Values   []interface{}
-}
+type Expr bear.Template
 
 func New(template string, values []interface{}) Expr {
 	return Expr{
-		Template: template,
-		Values:   values,
+		Format: template,
+		Values: values,
 	}
 }
 
 func Empty() Expr {
 	return Expr{}
+}
+
+func (e Expr) Template() bear.Template {
+	return bear.Template(e)
 }
 
 func Value(values ...interface{}) Expr {
@@ -27,54 +29,50 @@ func Value(values ...interface{}) Expr {
 	}
 }
 
-func (e Expr) Tuple() (string, []interface{}) {
-	return e.Template, e.Values
-}
-
 func (e Expr) And(other Expr) Expr {
-	if len(other.Template) == 0 {
+	if len(other.Format) == 0 {
 		return e
 	}
-	if len(e.Template) == 0 {
+	if len(e.Format) == 0 {
 		return other
 	}
 	return Expr{
-		Template: e.Template + " and " + other.Template,
-		Values:   append(e.Values, other.Values...),
+		Format: e.Format + " and " + other.Format,
+		Values: append(e.Values, other.Values...),
 	}
 }
 
 func (e Expr) Or(other Expr) Expr {
-	if len(other.Template) == 0 {
+	if len(other.Format) == 0 {
 		return e
 	}
-	if len(e.Template) == 0 {
+	if len(e.Format) == 0 {
 		return other
 	}
 	return Expr{
-		Template: "(" + e.Template + " or " + other.Template + ")",
-		Values:   append(e.Values, other.Values...),
+		Format: "(" + e.Format + " or " + other.Format + ")",
+		Values: append(e.Values, other.Values...),
 	}
 }
 
 func Equal(name string, value Expr) Expr {
 	result := Expr{}
 	result.Values = append(result.Values, value.Values...)
-	if len(value.Template) == 0 {
-		result.Template = fmt.Sprintf("%s = ?", name)
+	if len(value.Format) == 0 {
+		result.Format = fmt.Sprintf("%s = ?", name)
 		return result
 	}
-	result.Template = fmt.Sprintf("%s = (%s)", name, value.Template)
+	result.Format = fmt.Sprintf("%s = (%s)", name, value.Format)
 	return result
 }
 
 func NotEqual(name string, value Expr) Expr {
 	result := Expr{}
 	result.Values = append(result.Values, value.Values...)
-	if len(value.Template) == 0 {
-		result.Template = fmt.Sprintf("%s != ?", name)
+	if len(value.Format) == 0 {
+		result.Format = fmt.Sprintf("%s != ?", name)
 	} else {
-		result.Template = fmt.Sprintf("%s != (%s)", name, value.Template)
+		result.Format = fmt.Sprintf("%s != (%s)", name, value.Format)
 	}
 	return result
 }
@@ -86,10 +84,10 @@ func In(name string, value Expr) Expr {
 		holder = append(holder, "?")
 	}
 	result.Values = append(result.Values, value.Values)
-	if len(value.Template) == 0 {
-		result.Template = fmt.Sprintf("%s in (%s)", name, strings.Join(holder, ","))
+	if len(value.Format) == 0 {
+		result.Format = fmt.Sprintf("%s in (%s)", name, strings.Join(holder, ","))
 	} else {
-		result.Template = fmt.Sprintf("%s in (%s)", name, value.Template)
+		result.Format = fmt.Sprintf("%s in (%s)", name, value.Format)
 	}
 	return result
 }
@@ -98,15 +96,15 @@ func Between(name string, v1 Expr, v2 Expr) Expr {
 	result := Expr{}
 	result.Values = append(result.Values, v1.Values...)
 	result.Values = append(result.Values, v2.Values...)
-	if len(v1.Template) == 0 {
-		result.Template = fmt.Sprintf("%s between ?", name)
+	if len(v1.Format) == 0 {
+		result.Format = fmt.Sprintf("%s between ?", name)
 	} else {
-		result.Template = fmt.Sprintf("%s between (%s)", name, v1.Template)
+		result.Format = fmt.Sprintf("%s between (%s)", name, v1.Format)
 	}
-	if len(v2.Template) == 0 {
-		result.Template += fmt.Sprintf(" and ?")
+	if len(v2.Format) == 0 {
+		result.Format += fmt.Sprintf(" and ?")
 	} else {
-		result.Template += fmt.Sprintf(" and (%s)", v2.Template)
+		result.Format += fmt.Sprintf(" and (%s)", v2.Format)
 	}
 	return result
 }

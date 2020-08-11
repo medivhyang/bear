@@ -6,12 +6,8 @@ import (
 	"sync"
 )
 
-func DBFieldNames(i interface{}) []string {
-	return structFields(reflect.TypeOf(i)).dbFieldNames()
-}
-
-func DBFields(i interface{}) []DBField {
-	return structFields(reflect.TypeOf(i)).dbFields()
+type Tabler interface {
+	Table() string
 }
 
 const (
@@ -43,12 +39,6 @@ func (field structField) dbField() (DBField, bool) {
 	} else {
 		return result, false
 	}
-	if _, ok := field.tag[tagNestedKeyPK]; ok {
-		result.PK = true
-	}
-	if _, ok := field.tag[tagNestedKeyAutoIncrement]; ok {
-		result.Auto = true
-	}
 	if suffix := field.tag[tagNestedKeySuffix]; suffix != "" {
 		result.Suffix = suffix
 	}
@@ -62,7 +52,7 @@ func (field structField) dbFieldName() string {
 	if v := field.tag[tagNestedKeyName]; v != "" {
 		return v
 	}
-	return strings.ToLower(field.name)
+	return toKebab(field.name)
 }
 
 type structFieldSlice []structField
@@ -101,19 +91,36 @@ func structFields(typo reflect.Type) structFieldSlice {
 	return result
 }
 
-func (fields structFieldSlice) findIndex(name string) (int, bool) {
+func (fields structFieldSlice) findFieldByIndex(index int) (*structField, bool) {
+	for _, field := range fields {
+		if field.index == index {
+			return &field, true
+		}
+	}
+	return nil, false
+}
+
+func (fields structFieldSlice) findFieldByName(name string) (*structField, bool) {
 	for _, field := range fields {
 		if _, ok := field.tag[tagNestedKeyIgnore]; ok {
 			continue
 		}
 		if v, ok := field.tag[tagNestedKeyName]; ok && v == name {
-			return field.index, true
+			return &field, true
 		}
 	}
 	for _, field := range fields {
 		if field.name == name {
-			return field.index, true
+			return &field, true
 		}
+	}
+	return nil, false
+}
+
+func (fields structFieldSlice) findIndexByName(name string) (int, bool) {
+	field, ok := fields.findFieldByName(name)
+	if ok {
+		return field.index, true
 	}
 	return -1, false
 }
@@ -146,7 +153,7 @@ func findStructFieldIndex(typo reflect.Type, name string) (int, bool) {
 	if typo.Kind() != reflect.Struct {
 		panic("bear: get struct field name: require struct kind type")
 	}
-	return structFields(typo).findIndex(name)
+	return structFields(typo).findIndexByName(name)
 }
 
 func parseTag(t string) map[string]string {
@@ -170,4 +177,58 @@ func parseTag(t string) map[string]string {
 		}
 	}
 	return result
+}
+
+func structToMap(value reflect.Value) map[string]interface{} {
+	for value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+	if value.Kind() != reflect.Struct {
+		panic("bear: get struct field name: require struct kind type")
+	}
+	fields := structFields(value.Type())
+	result := map[string]interface{}{}
+	for i := 0; i < value.NumField(); i++ {
+		structField, ok := fields.findFieldByIndex(i)
+		if !ok {
+			continue
+		}
+		name := structField.dbFieldName()
+		if name == "" {
+			continue
+		}
+		valueField := value.Field(i)
+		result[name] = valueField.Interface()
+
+	}
+	return result
+}
+
+func isZeroValue(value reflect.Value) bool {
+	switch value.Kind() {
+	case reflect.String:
+		return value.Len() == 0
+	case reflect.Bool:
+		return !value.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return value.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return value.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return value.IsNil()
+	}
+	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
+}
+
+func tableName(i interface{}) string {
+	if tabler, ok := i.(Tabler); ok {
+		return tabler.Table()
+	}
+	typo := reflect.TypeOf(i)
+	for typo.Kind() == reflect.Ptr {
+		typo = typo.Elem()
+	}
+	return toKebab(typo.Name())
 }
