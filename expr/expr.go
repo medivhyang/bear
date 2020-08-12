@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+func New(format string, values ...interface{}) bear.Template {
+	return bear.Template{Format: format, Values: values}
+}
+
 func Empty() bear.Template {
 	return bear.Template{}
 }

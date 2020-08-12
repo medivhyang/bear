@@ -23,13 +23,7 @@ type (
 	}
 )
 
-func Select(table string, fields ...Template) *QueryBuilder {
-	b := QueryBuilder{table: table}
-	b.fields = append(b.fields, fields...)
-	return &b
-}
-
-func SelectSimple(table string, names ...string) *QueryBuilder {
+func Select(table string, names ...string) *QueryBuilder {
 	b := QueryBuilder{table: table}
 	for _, name := range names {
 		b.fields = append(b.fields, Template{Format: name})
@@ -37,12 +31,18 @@ func SelectSimple(table string, names ...string) *QueryBuilder {
 	return &b
 }
 
+func SelectWithTemplate(table string, templates ...Template) *QueryBuilder {
+	b := QueryBuilder{table: table}
+	b.fields = append(b.fields, templates...)
+	return &b
+}
+
 func SelectWithStruct(i interface{}) *QueryBuilder {
-	return SelectSimple(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...)
+	return Select(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...)
 }
 
 func SelectWhere(i interface{}) *QueryBuilder {
-	return SelectSimple(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...).WhereWithStruct(i)
+	return Select(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...).WhereWithStruct(i)
 }
 
 type QueryBuilder struct {

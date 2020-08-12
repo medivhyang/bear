@@ -35,7 +35,7 @@ func demoSelect() {
 }
 
 func demoSelectJoin() {
-	t := bear.SelectSimple(bear.TableName(user{}), "order.id", "order.user_id", "user.name").
+	t := bear.Select(bear.TableName(user{}), "order.id", "order.user_id", "user.name").
 		Join("left join order on user.id = order.user_id").
 		WhereWithTemplate(expr.Equal("user.name", "Alice")).
 		Build()
@@ -44,7 +44,7 @@ func demoSelectJoin() {
 
 func demoSelectSubQuery() {
 	t := bear.SelectWithStruct(user{}).
-		WhereWithTemplate(expr.GreaterEqualTemplate("age", bear.SelectSimple(bear.TableName(user{}), "avg(age)").Build())).
+		WhereWithTemplate(expr.GreaterEqualTemplate("age", bear.Select(bear.TableName(user{}), "avg(age)").Build())).
 		Build()
 	fmt.Printf("%#v\n", t)
 }

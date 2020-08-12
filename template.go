@@ -18,18 +18,36 @@ func Empty() Template {
 	return Template{}
 }
 
-func (t Template) Append(format string, values ...interface{}) Template {
-	t.Format += format
-	t.Values = append(t.Values, values...)
+func (t Template) Prepend(format string, values ...interface{}) Template {
+	t.Format = format + t.Format
+	if len(values) > 0 {
+		t.Values = append(append([]interface{}{}, values...), t.Values...)
+	}
 	return t
 }
 
-func (t Template) Merge(other Template) Template {
-	return t.Append(other.Format, other.Values...)
+func (t Template) Append(format string, values ...interface{}) Template {
+	t.Format += format
+	if len(values) > 0 {
+		t.Values = append(t.Values, values...)
+	}
+	return t
 }
 
-func (t Template) Join(other Template, sep string) Template {
-	return t.Append(sep+other.Format, other.Values...)
+func (t Template) Wrap(left string, right string) Template {
+	return t.Prepend(left).Append(right)
+}
+
+func (t Template) WrapBracket() Template {
+	return t.Wrap("(", ")")
+}
+
+func (t Template) Join(other Template, sep ...string) Template {
+	finalSep := ""
+	if len(sep) > 0 {
+		finalSep = sep[0]
+	}
+	return t.Append(finalSep+other.Format, other.Values...)
 }
 
 func (t Template) And(other Template) Template {
