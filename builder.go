@@ -460,6 +460,20 @@ func DropTableIfExists(table string) *TableBuilder {
 	}
 }
 
+func DropTableWithStruct(i interface{}) *TableBuilder {
+	return &TableBuilder{
+		action: actionDropTable,
+		table:  TableName(i),
+	}
+}
+
+func DropTableWithStructIfExists(i interface{}) *TableBuilder {
+	return &TableBuilder{
+		action: actionDropTableIfExists,
+		table:  TableName(i),
+	}
+}
+
 func (field DBField) Build() Template {
 	template := fmt.Sprintf("%s %s", field.Name, field.Type)
 	if field.Suffix != "" {

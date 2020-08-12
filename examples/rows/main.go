@@ -31,7 +31,7 @@ func init() {
 
 	bear.SetDefaultDialect("sqlite3")
 
-	if _, err := bear.DropTableIfExists(bear.TableName(user{})).Execute(db); err != nil {
+	if _, err := bear.DropTableWithStructIfExists(user{}).Execute(db); err != nil {
 		panic(err)
 	}
 	if _, err := bear.CreateTableWithStructIfNotExists(user{}).Execute(db); err != nil {
