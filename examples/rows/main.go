@@ -1,28 +1,89 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"os"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/medivhyang/bear"
+	_ "github.com/medivhyang/bear/dialect/sqlite3"
 )
 
-func main() {
-	//fmt.Println("demo map slice:")
-	//demoMapSlice()
-	//
-	//fmt.Println("\ndemo map:")
-	//demoMap()
-	//
-	//fmt.Println("\ndemo struct slice:")
-	//demoStructSlice()
-	//
-	//fmt.Println("\ndemo struct:")
-	//demoStruct()
-
-	demoPaging()
+type user struct {
+	ID      int
+	Name    string
+	Age     int
+	Role    string
+	Created int64
 }
 
-func demoMapSlice() {
-	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
+var db *sql.DB
+
+func init() {
+	var err error
+	db, err = openSqlite3("data.db")
+	if err != nil {
+		panic(err)
+	}
+
+	bear.SetDefaultDialect("sqlite3")
+
+	if _, err := bear.DropTableIfExists(bear.TableName(user{})).Execute(db); err != nil {
+		panic(err)
+	}
+	if _, err := bear.CreateTableWithStructIfNotExists(user{}).Execute(db); err != nil {
+		panic(err)
+	}
+
+	data := []user{
+		{ID: 1, Name: "Tom", Age: 20, Role: "student", Created: time.Now().Unix()},
+		{ID: 2, Name: "Bob", Age: 21, Role: "student", Created: time.Now().Unix()},
+		{ID: 3, Name: "Medivh", Age: 32, Role: "teacher", Created: time.Now().Unix()},
+		{ID: 4, Name: "Jason", Age: 33, Role: "teacher", Created: time.Now().Unix()},
+		{ID: 5, Name: "Monica", Age: 34, Role: "teacher", Created: time.Now().Unix()},
+	}
+	for _, item := range data {
+		if _, err := bear.InsertWithStruct(item).Execute(db); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func main() {
+	fmt.Println("demo map slice:")
+	demoMapSlice(db)
+
+	fmt.Println("\ndemo map:")
+	demoMap(db)
+
+	fmt.Println("\ndemo struct slice:")
+	demoStructSlice(db)
+
+	fmt.Println("\ndemo struct:")
+	demoStruct(db)
+}
+
+func openSqlite3(filename string) (*sql.DB, error) {
+	if _, err := os.Stat(filename); !os.IsExist(err) {
+		if _, err := os.Create(filename); err != nil {
+			return nil, err
+		}
+	}
+	db, err := sql.Open("sqlite3", filename)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func demoMapSlice(db *sql.DB) {
+	rows, err := bear.SelectWithStruct(user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -35,8 +96,8 @@ func demoMapSlice() {
 	}
 }
 
-func demoMap() {
-	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
+func demoMap(db *sql.DB) {
+	rows, err := bear.SelectWithStruct(user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -47,8 +108,8 @@ func demoMap() {
 	fmt.Printf("%#v\n", m)
 }
 
-func demoStructSlice() {
-	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
+func demoStructSlice(db *sql.DB) {
+	rows, err := bear.SelectWithStruct(user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -61,8 +122,8 @@ func demoStructSlice() {
 	}
 }
 
-func demoStruct() {
-	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
+func demoStruct(db *sql.DB) {
+	rows, err := bear.SelectWithStruct(user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -71,18 +132,4 @@ func demoStruct() {
 		panic(err)
 	}
 	fmt.Printf("%#v\n", u)
-}
-
-func demoPaging() {
-	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
-	if err != nil {
-		panic(err)
-	}
-	slice, err := rows.MapSlice()
-	if err != nil {
-		panic(err)
-	}
-	for i, v := range slice {
-		fmt.Printf("%d => %#v\n", i, v)
-	}
 }

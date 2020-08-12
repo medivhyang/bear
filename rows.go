@@ -113,6 +113,9 @@ func (r *Rows) StructSlice(structSlicePtr interface{}) error {
 		for i, column := range columns {
 			if fieldIndex, ok := findStructFieldIndex(structValue.Type(), column); ok {
 				values[i] = structValue.Field(fieldIndex).Addr().Interface()
+			} else {
+				var a interface{}
+				values[i] = &a
 			}
 		}
 		if err := r.Raw.Scan(values...); err != nil {
@@ -142,6 +145,9 @@ func (r *Rows) Struct(structPtr interface{}) error {
 	for i, column := range columns {
 		if fieldIndex, ok := findStructFieldIndex(structValue.Type(), column); ok {
 			values[i] = structValue.Field(fieldIndex).Addr().Interface()
+		} else {
+			var a interface{}
+			values[i] = &a
 		}
 	}
 

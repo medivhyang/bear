@@ -21,11 +21,13 @@ func RegisterDialect(name string, dialect Dialect, isDefault ...bool) {
 	}
 }
 
-func SetDefaultDialect(name string) {
+func SetDefaultDialect(name string) bool {
 	d := dialect(name)
 	if d != nil {
 		dialects.Store("", d)
+		return true
 	}
+	return false
 }
 
 func dialect(name string) Dialect {
