@@ -6,17 +6,19 @@ import (
 )
 
 func main() {
-	fmt.Println("demo map slice:")
-	demoMapSlice()
+	//fmt.Println("demo map slice:")
+	//demoMapSlice()
+	//
+	//fmt.Println("\ndemo map:")
+	//demoMap()
+	//
+	//fmt.Println("\ndemo struct slice:")
+	//demoStructSlice()
+	//
+	//fmt.Println("\ndemo struct:")
+	//demoStruct()
 
-	fmt.Println("\ndemo map:")
-	demoMap()
-
-	fmt.Println("\ndemo struct slice:")
-	demoStructSlice()
-
-	fmt.Println("\ndemo struct:")
-	demoStruct()
+	demoPaging()
 }
 
 func demoMapSlice() {
@@ -69,4 +71,18 @@ func demoStruct() {
 		panic(err)
 	}
 	fmt.Printf("%#v\n", u)
+}
+
+func demoPaging() {
+	rows, err := bear.SelectWithStruct(user{}).Query(getDB())
+	if err != nil {
+		panic(err)
+	}
+	slice, err := rows.MapSlice()
+	if err != nil {
+		panic(err)
+	}
+	for i, v := range slice {
+		fmt.Printf("%d => %#v\n", i, v)
+	}
 }

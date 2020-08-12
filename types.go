@@ -25,7 +25,7 @@ type structField struct {
 	tag   map[string]string
 }
 
-func (field structField) dbField() (DBField, bool) {
+func (field structField) dbField(driverName string) (DBField, bool) {
 	result := DBField{}
 	name := field.dbFieldName()
 	if name == "" {
@@ -35,6 +35,11 @@ func (field structField) dbField() (DBField, bool) {
 	if typo := field.tag[tagNestedKeyType]; typo != "" {
 		result.Type = typo
 	} else {
+		if d := dialect(driverName); d != nil {
+			result.Type = d.TypeMapping(field.typo)
+		}
+	}
+	if result.Type == "" {
 		return result, false
 	}
 	if suffix := field.tag[tagNestedKeySuffix]; suffix != "" {
@@ -78,7 +83,7 @@ func structFields(typo reflect.Type) structFieldSlice {
 		item := structField{
 			index: i,
 			name:  field.Name,
-			typo:  field.Type.Name(),
+			typo:  field.Type.String(),
 			tag:   tag,
 		}
 		result = append(result, item)
@@ -123,10 +128,10 @@ func (fields structFieldSlice) findIndexByName(name string) (int, bool) {
 	return -1, false
 }
 
-func (fields structFieldSlice) dbFields() []DBField {
+func (fields structFieldSlice) dbFields(dialect string) []DBField {
 	var result []DBField
 	for _, field := range fields {
-		if dbField, ok := field.dbField(); ok {
+		if dbField, ok := field.dbField(dialect); ok {
 			result = append(result, dbField)
 		}
 	}
@@ -220,7 +225,7 @@ func isZeroValue(value reflect.Value) bool {
 	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
 }
 
-func tableName(i interface{}) string {
+func TableName(i interface{}) string {
 	if tabler, ok := i.(Tabler); ok {
 		return tabler.Table()
 	}

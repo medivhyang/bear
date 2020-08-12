@@ -18,20 +18,29 @@ type user struct {
 }
 
 func main() {
-	db, err := openSqliteDB("data.db")
+	db, err := openSqlite3("data.db")
 	if err != nil {
 		panic(err)
 	}
-	if _, err := bear.DropTable("user").Execute(db); err != nil {
+
+	//if _, err := bear.DropTable("user").Execute(db); err != nil {
+	//	panic(err)
+	//}
+	//if _, err := bear.CreateTableWithStruct(user{}).Execute(db); err != nil {
+	//	panic(err)
+	//}
+
+	if _, err := bear.DropTableIfExists(bear.TableName(user{})).Execute(db); err != nil {
 		panic(err)
 	}
-	if _, err := bear.CreateTableWithStruct(user{}).Execute(db); err != nil {
+	if _, err := bear.CreateTableWithStructIfNotExists(user{}).Execute(db); err != nil {
 		panic(err)
 	}
+
 	fmt.Println("done")
 }
 
-func openSqliteDB(filename string) (*sql.DB, error) {
+func openSqlite3(filename string) (*sql.DB, error) {
 	if _, err := os.Stat(filename); !os.IsExist(err) {
 		if _, err := os.Create(filename); err != nil {
 			return nil, err

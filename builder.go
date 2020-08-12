@@ -38,14 +38,15 @@ func SelectSimple(table string, names ...string) *QueryBuilder {
 }
 
 func SelectWithStruct(i interface{}) *QueryBuilder {
-	return SelectSimple(tableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...)
+	return SelectSimple(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...)
 }
 
 func SelectWhere(i interface{}) *QueryBuilder {
-	return SelectSimple(tableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...).WhereWithStruct(i)
+	return SelectSimple(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...).WhereWithStruct(i)
 }
 
 type QueryBuilder struct {
+	dialect string
 	table   string
 	fields  []Template
 	joins   []Template
@@ -53,7 +54,12 @@ type QueryBuilder struct {
 	groupBy []string
 	having  ConditionBuilder
 	orderBy []string
-	paging  string
+	paging  Template
+}
+
+func (b *QueryBuilder) Dialect(name string) *QueryBuilder {
+	b.dialect = name
+	return b
 }
 
 func (b *QueryBuilder) Table(name string) *QueryBuilder {
@@ -61,8 +67,13 @@ func (b *QueryBuilder) Table(name string) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Join(format string, values []interface{}) *QueryBuilder {
+func (b *QueryBuilder) Join(format string, values ...interface{}) *QueryBuilder {
 	b.joins = append(b.joins, Template{Format: format, Values: values})
+	return b
+}
+
+func (b *QueryBuilder) JoinWithTemplate(templates ...Template) *QueryBuilder {
+	b.joins = append(b.joins, templates...)
 	return b
 }
 
@@ -116,7 +127,17 @@ func (b *QueryBuilder) OrderBy(names ...string) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Paging(template string) *QueryBuilder {
+func (b *QueryBuilder) PagingWithLimit(offset int, limit int) *QueryBuilder {
+	b.paging = New("limit ?,?", offset, limit)
+	return b
+}
+
+func (b *QueryBuilder) Paging(format string, values ...interface{}) *QueryBuilder {
+	b.paging = New(format, values...)
+	return b
+}
+
+func (b *QueryBuilder) PagingWithTemplate(template Template) *QueryBuilder {
 	b.paging = template
 	return b
 }
@@ -133,6 +154,10 @@ func (b *QueryBuilder) Build() Template {
 		strings.Join(fieldsTemplates, ","),
 		b.table,
 	)
+
+	for _, item := range b.joins {
+		result = result.Append(" "+item.Format, item.Values...)
+	}
 
 	where := b.where.Build()
 	if len(where.Format) > 0 {
@@ -152,6 +177,10 @@ func (b *QueryBuilder) Build() Template {
 
 	if len(b.orderBy) > 0 {
 		result.Format += fmt.Sprintf(" order by %s", strings.Join(b.orderBy, ","))
+	}
+
+	if !b.paging.IsEmpty() {
+		result = result.Join(b.paging, " ")
 	}
 
 	return result
@@ -187,7 +216,7 @@ func Insert(table string, pairs map[string]interface{}) *CommandBuilder {
 }
 
 func InsertWithStruct(i interface{}) *CommandBuilder {
-	return Insert(tableName(i), structToMap(reflect.ValueOf(i)))
+	return Insert(TableName(i), structToMap(reflect.ValueOf(i)))
 }
 
 func Update(table string, pairs map[string]interface{}) *CommandBuilder {
@@ -200,7 +229,7 @@ func Update(table string, pairs map[string]interface{}) *CommandBuilder {
 }
 
 func UpdateWithStruct(i interface{}) *CommandBuilder {
-	return Update(tableName(i), structToMap(reflect.ValueOf(i)))
+	return Update(TableName(i), structToMap(reflect.ValueOf(i)))
 }
 
 func Delete(table string) *CommandBuilder {
@@ -209,11 +238,17 @@ func Delete(table string) *CommandBuilder {
 }
 
 type CommandBuilder struct {
-	action string
-	table  string
-	names  []string
-	values []interface{}
-	where  ConditionBuilder
+	action  string
+	dialect string
+	table   string
+	names   []string
+	values  []interface{}
+	where   ConditionBuilder
+}
+
+func (b *CommandBuilder) Dialect(name string) *CommandBuilder {
+	b.dialect = name
+	return b
 }
 
 func (b *CommandBuilder) Table(name string) *CommandBuilder {
@@ -272,7 +307,7 @@ func (b *CommandBuilder) Build() Template {
 
 	where := b.where.Build()
 	if len(where.Format) > 0 {
-		result.Format += " where" + where.Format
+		result.Format += " where " + where.Format
 		result.Values = append(result.Values, where.Values...)
 	}
 
@@ -280,21 +315,11 @@ func (b *CommandBuilder) Build() Template {
 }
 
 func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
-	s := b.Build()
-	result, err := exectutor.Exec(s.Format, s.Values...)
-	if err != nil {
-		return nil, err
-	}
-	return WrapResult(result), nil
+	return b.Build().Execute(exectutor)
 }
 
 func (b *CommandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) (*Result, error) {
-	s := b.Build()
-	result, err := exectutor.ExecContext(ctx, s.Format, s.Values...)
-	if err != nil {
-		return nil, err
-	}
-	return WrapResult(result), nil
+	return b.Build().ExecuteWitchContext(exectutor, ctx)
 }
 
 type ConditionBuilder struct {
@@ -375,8 +400,12 @@ func (b *ConditionBuilder) Build() Template {
 }
 
 const (
-	actionCreateTable = "create_table"
-	actionDropTable   = "drop_table"
+	actionCreateTable                      = "create_table"
+	actionCreateTableIfNotExists           = "create_table_if_not_exists"
+	actionCreateTableWithStruct            = "create_table_with_struct"
+	actionCreateTableWithStructIfNotExists = "create_table_with_struct_if_not_exists"
+	actionDropTable                        = "drop_table"
+	actionDropTableIfExists                = "drop_table_if_exists"
 )
 
 type DBField struct {
@@ -387,6 +416,31 @@ type DBField struct {
 
 func CreateTable(table string, fields []DBField) *TableBuilder {
 	return &TableBuilder{
+		action: actionCreateTable,
+		table:  table,
+		fields: fields,
+	}
+}
+
+func CreateTableWithStruct(i interface{}) *TableBuilder {
+	return &TableBuilder{
+		action:     actionCreateTableWithStruct,
+		table:      TableName(i),
+		structType: reflect.TypeOf(i),
+	}
+}
+
+func CreateTableWithStructIfNotExists(i interface{}) *TableBuilder {
+	return &TableBuilder{
+		action:     actionCreateTableWithStructIfNotExists,
+		table:      TableName(i),
+		structType: reflect.TypeOf(i),
+	}
+}
+
+func CreateTableIfNotExists(table string, fields []DBField) *TableBuilder {
+	return &TableBuilder{
+		action: actionCreateTableIfNotExists,
 		table:  table,
 		fields: fields,
 	}
@@ -394,12 +448,16 @@ func CreateTable(table string, fields []DBField) *TableBuilder {
 
 func DropTable(table string) *TableBuilder {
 	return &TableBuilder{
-		table: table,
+		action: actionDropTable,
+		table:  table,
 	}
 }
 
-func CreateTableWithStruct(i interface{}) *TableBuilder {
-	return CreateTable(tableName(i), structFields(reflect.TypeOf(i)).dbFields())
+func DropTableIfExists(table string) *TableBuilder {
+	return &TableBuilder{
+		action: actionDropTableIfExists,
+		table:  table,
+	}
 }
 
 func (field DBField) Build() Template {
@@ -421,11 +479,18 @@ func (fields dbFieldSlice) names() []string {
 }
 
 type TableBuilder struct {
-	action   string
-	table    string
-	fields   dbFieldSlice
-	prepends []Template
-	appends  []Template
+	action     string
+	dialet     string
+	table      string
+	fields     dbFieldSlice
+	structType reflect.Type
+	prepends   []Template
+	appends    []Template
+}
+
+func (b *TableBuilder) Dialect(name string) *TableBuilder {
+	b.dialet = name
+	return b
 }
 
 func (b *TableBuilder) Table(name string) *TableBuilder {
@@ -449,18 +514,31 @@ func (b *TableBuilder) Build() Template {
 
 	for _, item := range b.prepends {
 		buffer.WriteString(item.Format)
+		buffer.WriteString("\n")
 		result.Values = append(result.Values, item.Values...)
 	}
 
 	switch b.action {
-	case actionCreateTable:
+	case actionCreateTable, actionCreateTableIfNotExists,
+		actionCreateTableWithStruct, actionCreateTableWithStructIfNotExists:
+		if b.action == actionCreateTableWithStruct || b.action == actionCreateTableWithStructIfNotExists {
+			b.fields = structFields(b.structType).dbFields(b.dialet)
+		}
+		if len(b.fields) == 0 {
+			break
+		}
 		if buffer.Len() > 0 && !strings.HasSuffix(buffer.String(), "\n") {
 			buffer.WriteString("\n")
 		}
-		buffer.WriteString(fmt.Sprintf("create table %s (\n", b.table))
+		switch b.action {
+		case actionCreateTable, actionCreateTableWithStruct:
+			buffer.WriteString(fmt.Sprintf("create table %s (\n", b.table))
+		case actionCreateTableIfNotExists, actionCreateTableWithStructIfNotExists:
+			buffer.WriteString(fmt.Sprintf("create table if not exists %s (\n", b.table))
+		}
 		for i, field := range b.fields {
 			s := field.Build()
-			buffer.WriteString("\t")
+			buffer.WriteString("  ")
 			buffer.WriteString(s.Format)
 			if i < len(b.fields)-1 {
 				buffer.WriteString(",\n")
@@ -472,10 +550,13 @@ func (b *TableBuilder) Build() Template {
 		buffer.WriteString(");\n")
 	case actionDropTable:
 		buffer.WriteString(fmt.Sprintf("drop table %s;\n", b.table))
+	case actionDropTableIfExists:
+		buffer.WriteString(fmt.Sprintf("drop table if exists %s;\n", b.table))
 	}
 
 	for _, item := range b.appends {
 		buffer.WriteString(item.Format)
+		buffer.WriteString("\n")
 		result.Values = append(result.Values, item.Values...)
 	}
 
