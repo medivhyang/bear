@@ -23,160 +23,158 @@ type (
 	}
 )
 
-func Select(table string, names ...string) *QueryBuilder {
-	b := QueryBuilder{table: table}
+func Select(table string, names ...string) *queryBuilder {
+	b := queryBuilder{table: table}
 	for _, name := range names {
 		b.fields = append(b.fields, Template{Format: name})
 	}
 	return &b
 }
 
-func SelectWithTemplate(table string, templates ...Template) *QueryBuilder {
-	b := QueryBuilder{table: table}
+func SelectWithTemplate(table string, templates ...Template) *queryBuilder {
+	b := queryBuilder{table: table}
 	b.fields = append(b.fields, templates...)
 	return &b
 }
 
-func SelectWithStruct(i interface{}) *QueryBuilder {
+func SelectWithStruct(i interface{}) *queryBuilder {
 	return Select(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...)
 }
 
-func SelectWhere(i interface{}) *QueryBuilder {
+func SelectWhere(i interface{}) *queryBuilder {
 	return Select(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...).WhereWithStruct(i)
 }
 
-type QueryBuilder struct {
+type queryBuilder struct {
 	dialect string
 	table   string
 	fields  []Template
 	joins   []Template
-	where   ConditionBuilder
+	where   conditionBuilder
 	groupBy []string
-	having  ConditionBuilder
+	having  conditionBuilder
 	orderBy []string
 	paging  Template
 }
 
-func (b *QueryBuilder) Dialect(name string) *QueryBuilder {
+func (b *queryBuilder) Dialect(name string) *queryBuilder {
 	b.dialect = name
 	return b
 }
 
-func (b *QueryBuilder) Table(name string) *QueryBuilder {
+func (b *queryBuilder) Table(name string) *queryBuilder {
 	b.table = name
 	return b
 }
 
-func (b *QueryBuilder) Join(format string, values ...interface{}) *QueryBuilder {
+func (b *queryBuilder) Join(format string, values ...interface{}) *queryBuilder {
 	b.joins = append(b.joins, Template{Format: format, Values: values})
 	return b
 }
 
-func (b *QueryBuilder) JoinWithTemplate(templates ...Template) *QueryBuilder {
+func (b *queryBuilder) JoinWithTemplate(templates ...Template) *queryBuilder {
 	b.joins = append(b.joins, templates...)
 	return b
 }
 
-func (b *QueryBuilder) Where(format string, values ...interface{}) *QueryBuilder {
+func (b *queryBuilder) Where(format string, values ...interface{}) *queryBuilder {
 	b.where.Append(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *QueryBuilder) WhereWithTemplate(templates ...Template) *QueryBuilder {
+func (b *queryBuilder) WhereWithTemplate(templates ...Template) *queryBuilder {
 	b.where.Append(templates...)
 	return b
 }
 
-func (b *QueryBuilder) WhereWithMap(m map[string]interface{}) *QueryBuilder {
+func (b *queryBuilder) WhereWithMap(m map[string]interface{}) *queryBuilder {
 	b.where.WithMap(m)
 	return b
 }
 
-func (b *QueryBuilder) WhereWithStruct(i interface{}) *QueryBuilder {
+func (b *queryBuilder) WhereWithStruct(i interface{}) *queryBuilder {
 	b.where.WithStruct(i)
 	return b
 }
 
-func (b *QueryBuilder) Having(format string, values ...interface{}) *QueryBuilder {
+func (b *queryBuilder) Having(format string, values ...interface{}) *queryBuilder {
 	b.having.Append(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *QueryBuilder) HavingWithTemplate(templates ...Template) *QueryBuilder {
+func (b *queryBuilder) HavingWithTemplate(templates ...Template) *queryBuilder {
 	b.having.Append(templates...)
 	return b
 }
 
-func (b *QueryBuilder) HavingWithMap(m map[string]interface{}) *QueryBuilder {
+func (b *queryBuilder) HavingWithMap(m map[string]interface{}) *queryBuilder {
 	b.where.WithMap(m)
 	return b
 }
 
-func (b *QueryBuilder) HavingWithStruct(i interface{}) *QueryBuilder {
+func (b *queryBuilder) HavingWithStruct(i interface{}) *queryBuilder {
 	b.where.WithStruct(i)
 	return b
 }
 
-func (b *QueryBuilder) GroupBy(names ...string) *QueryBuilder {
+func (b *queryBuilder) GroupBy(names ...string) *queryBuilder {
 	b.groupBy = append(b.groupBy, names...)
 	return b
 }
 
-func (b *QueryBuilder) OrderBy(names ...string) *QueryBuilder {
+func (b *queryBuilder) OrderBy(names ...string) *queryBuilder {
 	b.orderBy = append(b.orderBy, names...)
 	return b
 }
 
-func (b *QueryBuilder) PagingWithLimit(offset int, limit int) *QueryBuilder {
+func (b *queryBuilder) PagingWithLimit(offset int, limit int) *queryBuilder {
 	b.paging = New("limit ?,?", offset, limit)
 	return b
 }
 
-func (b *QueryBuilder) Paging(format string, values ...interface{}) *QueryBuilder {
+func (b *queryBuilder) Paging(format string, values ...interface{}) *queryBuilder {
 	b.paging = New(format, values...)
 	return b
 }
 
-func (b *QueryBuilder) PagingWithTemplate(template Template) *QueryBuilder {
+func (b *queryBuilder) PagingWithTemplate(template Template) *queryBuilder {
 	b.paging = template
 	return b
 }
 
-func (b *QueryBuilder) Build() Template {
+func (b *queryBuilder) Build() Template {
 	result := Template{}
 
-	var fieldsTemplates []string
+	var fieldsFormats []string
 	for _, field := range b.fields {
-		fieldsTemplates = append(fieldsTemplates, field.Format)
+		fieldsFormats = append(fieldsFormats, field.Format)
 		result.Values = append(result.Values, field.Values...)
 	}
 	result.Format = fmt.Sprintf("select %s from %s",
-		strings.Join(fieldsTemplates, ","),
+		strings.Join(fieldsFormats, ","),
 		b.table,
 	)
 
 	for _, item := range b.joins {
-		result = result.Append(" "+item.Format, item.Values...)
+		result = result.Join(item, " ")
 	}
 
 	where := b.where.Build()
-	if len(where.Format) > 0 {
-		result.Format += " where " + where.Format
-		result.Values = append(result.Values, where.Values...)
+	if !where.IsEmpty() {
+		result = result.Join(where, " where ")
 	}
 
 	if len(b.groupBy) > 0 {
-		result.Format += fmt.Sprintf(" group by %s", strings.Join(b.groupBy, ","))
+		result = result.Append(fmt.Sprintf(" group by %s", strings.Join(b.groupBy, ",")))
 	}
 
 	having := b.having.Build()
-	if len(having.Format) > 0 {
-		result.Format += " having" + having.Format
-		result.Values = append(result.Values, having.Values...)
+	if !having.IsEmpty() {
+		result = result.Join(having, " having ")
 	}
 
 	if len(b.orderBy) > 0 {
-		result.Format += fmt.Sprintf(" order by %s", strings.Join(b.orderBy, ","))
+		result = result.Append(fmt.Sprintf(" order by %s", strings.Join(b.orderBy, ",")))
 	}
 
 	if !b.paging.IsEmpty() {
@@ -186,17 +184,19 @@ func (b *QueryBuilder) Build() Template {
 	return result
 }
 
-func (b *QueryBuilder) As(alias string) Template {
-	s := b.Build()
-	s.Format = fmt.Sprintf("(%s) as %s", s.Format, alias)
-	return s
+func (b *queryBuilder) As(alias string) Template {
+	t := b.Build()
+	if len(alias) == 0 {
+		return t
+	}
+	return t.WrapBracket().Append(fmt.Sprintf(" as %s", alias))
 }
 
-func (b *QueryBuilder) Query(querier Querier) (*Rows, error) {
+func (b *queryBuilder) Query(querier Querier) (*Rows, error) {
 	return b.Build().Query(querier)
 }
 
-func (b *QueryBuilder) QueryWithContext(querier WithContextQuerier, ctx context.Context) (*Rows, error) {
+func (b *queryBuilder) QueryWithContext(querier WithContextQuerier, ctx context.Context) (*Rows, error) {
 	return b.Build().QueryWithContext(querier, ctx)
 }
 
@@ -206,8 +206,8 @@ const (
 	actionDelete = "delete"
 )
 
-func Insert(table string, pairs map[string]interface{}) *CommandBuilder {
-	b := &CommandBuilder{table: table, action: actionInsert}
+func Insert(table string, pairs map[string]interface{}) *commandBuilder {
+	b := &commandBuilder{table: table, action: actionInsert}
 	for k, v := range pairs {
 		b.names = append(b.names, k)
 		b.values = append(b.values, v)
@@ -215,12 +215,12 @@ func Insert(table string, pairs map[string]interface{}) *CommandBuilder {
 	return b
 }
 
-func InsertWithStruct(i interface{}) *CommandBuilder {
-	return Insert(TableName(i), structToMap(reflect.ValueOf(i)))
+func InsertWithStruct(i interface{}) *commandBuilder {
+	return Insert(TableName(i), structToValueMap(reflect.ValueOf(i), true))
 }
 
-func Update(table string, pairs map[string]interface{}) *CommandBuilder {
-	b := &CommandBuilder{table: table, action: actionUpdate}
+func Update(table string, pairs map[string]interface{}) *commandBuilder {
+	b := &commandBuilder{table: table, action: actionUpdate}
 	for k, v := range pairs {
 		b.names = append(b.names, k)
 		b.values = append(b.values, v)
@@ -228,55 +228,55 @@ func Update(table string, pairs map[string]interface{}) *CommandBuilder {
 	return b
 }
 
-func UpdateWithStruct(i interface{}) *CommandBuilder {
-	return Update(TableName(i), structToMap(reflect.ValueOf(i)))
+func UpdateWithStruct(i interface{}) *commandBuilder {
+	return Update(TableName(i), structToValueMap(reflect.ValueOf(i), false))
 }
 
-func Delete(table string) *CommandBuilder {
-	b := &CommandBuilder{table: table, action: actionDelete}
+func Delete(table string) *commandBuilder {
+	b := &commandBuilder{table: table, action: actionDelete}
 	return b
 }
 
-type CommandBuilder struct {
+type commandBuilder struct {
 	action  string
 	dialect string
 	table   string
 	names   []string
 	values  []interface{}
-	where   ConditionBuilder
+	where   conditionBuilder
 }
 
-func (b *CommandBuilder) Dialect(name string) *CommandBuilder {
+func (b *commandBuilder) Dialect(name string) *commandBuilder {
 	b.dialect = name
 	return b
 }
 
-func (b *CommandBuilder) Table(name string) *CommandBuilder {
+func (b *commandBuilder) Table(name string) *commandBuilder {
 	b.table = name
 	return b
 }
 
-func (b *CommandBuilder) Where(template string, values ...interface{}) *CommandBuilder {
+func (b *commandBuilder) Where(template string, values ...interface{}) *commandBuilder {
 	b.where.Append(Template{Format: template, Values: values})
 	return b
 }
 
-func (b *CommandBuilder) WhereWithTemplate(templates ...Template) *CommandBuilder {
+func (b *commandBuilder) WhereWithTemplate(templates ...Template) *commandBuilder {
 	b.where.Append(templates...)
 	return b
 }
 
-func (b *CommandBuilder) WhereWithMap(m map[string]interface{}) *CommandBuilder {
+func (b *commandBuilder) WhereWithMap(m map[string]interface{}) *commandBuilder {
 	b.where.WithMap(m)
 	return b
 }
 
-func (b *CommandBuilder) WhereWithStruct(i interface{}) *CommandBuilder {
+func (b *commandBuilder) WhereWithStruct(i interface{}) *commandBuilder {
 	b.where.WithStruct(i)
 	return b
 }
 
-func (b *CommandBuilder) Build() Template {
+func (b *commandBuilder) Build() Template {
 	result := Template{}
 
 	switch b.action {
@@ -306,29 +306,28 @@ func (b *CommandBuilder) Build() Template {
 	}
 
 	where := b.where.Build()
-	if len(where.Format) > 0 {
-		result.Format += " where " + where.Format
-		result.Values = append(result.Values, where.Values...)
+	if !where.IsEmpty() {
+		result = result.Join(where, " where ")
 	}
 
 	return result
 }
 
-func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
+func (b *commandBuilder) Execute(exectutor Executor) (*Result, error) {
 	return b.Build().Execute(exectutor)
 }
 
-func (b *CommandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) (*Result, error) {
+func (b *commandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) (*Result, error) {
 	return b.Build().ExecuteWitchContext(exectutor, ctx)
 }
 
-type ConditionBuilder struct {
+type conditionBuilder struct {
 	conditions []string
 	names      []string
 	values     []interface{}
 }
 
-func (b *ConditionBuilder) Append(items ...Template) *ConditionBuilder {
+func (b *conditionBuilder) Append(items ...Template) *conditionBuilder {
 	for _, item := range items {
 		b.conditions = append(b.conditions, item.Format)
 		b.values = append(b.values, item.Values...)
@@ -336,16 +335,14 @@ func (b *ConditionBuilder) Append(items ...Template) *ConditionBuilder {
 	return b
 }
 
-func (b *ConditionBuilder) WithMap(m map[string]interface{}) *ConditionBuilder {
+func (b *conditionBuilder) WithMap(m map[string]interface{}) *conditionBuilder {
 	var (
 		items  []string
 		values []interface{}
 	)
 	for k, v := range m {
-		if !isZeroValue(reflect.ValueOf(v)) {
-			items = append(items, fmt.Sprintf("%s = ?", k))
-			values = append(values, v)
-		}
+		items = append(items, fmt.Sprintf("%s = ?", k))
+		values = append(values, v)
 	}
 	template := strings.Join(items, " and ")
 	if template != "" {
@@ -355,17 +352,15 @@ func (b *ConditionBuilder) WithMap(m map[string]interface{}) *ConditionBuilder {
 	return b
 }
 
-func (b *ConditionBuilder) WithStruct(i interface{}) *ConditionBuilder {
+func (b *conditionBuilder) WithStruct(i interface{}) *conditionBuilder {
 	var (
 		items  []string
 		values []interface{}
 	)
-	m := structToMap(reflect.ValueOf(i))
+	m := structToValueMap(reflect.ValueOf(i), false)
 	for k, v := range m {
-		if !isZeroValue(reflect.ValueOf(v)) {
-			items = append(items, fmt.Sprintf("%s = ?", k))
-			values = append(values, v)
-		}
+		items = append(items, fmt.Sprintf("%s = ?", k))
+		values = append(values, v)
 	}
 	template := strings.Join(items, " and ")
 	if template != "" {
@@ -375,7 +370,7 @@ func (b *ConditionBuilder) WithStruct(i interface{}) *ConditionBuilder {
 	return b
 }
 
-func (b *ConditionBuilder) Build() Template {
+func (b *conditionBuilder) Build() Template {
 	if len(b.conditions) == 0 {
 		return Template{}
 	}
