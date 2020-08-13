@@ -26,14 +26,14 @@ type (
 func Select(table string, names ...string) *queryBuilder {
 	b := queryBuilder{table: table}
 	for _, name := range names {
-		b.fields = append(b.fields, Template{Format: name})
+		b.columns = append(b.columns, Template{Format: name})
 	}
 	return &b
 }
 
 func SelectWithTemplate(table string, templates ...Template) *queryBuilder {
 	b := queryBuilder{table: table}
-	b.fields = append(b.fields, templates...)
+	b.columns = append(b.columns, templates...)
 	return &b
 }
 
@@ -48,7 +48,7 @@ func SelectWhere(i interface{}) *queryBuilder {
 type queryBuilder struct {
 	dialect string
 	table   string
-	fields  []Template
+	columns []Template
 	joins   []Template
 	where   conditionBuilder
 	groupBy []string
@@ -145,13 +145,13 @@ func (b *queryBuilder) PagingWithTemplate(template Template) *queryBuilder {
 func (b *queryBuilder) Build() Template {
 	result := Template{}
 
-	var fieldsFormats []string
-	for _, field := range b.fields {
-		fieldsFormats = append(fieldsFormats, field.Format)
-		result.Values = append(result.Values, field.Values...)
+	var formats []string
+	for _, c := range b.columns {
+		formats = append(formats, c.Format)
+		result.Values = append(result.Values, c.Values...)
 	}
 	result.Format = fmt.Sprintf("select %s from %s",
-		strings.Join(fieldsFormats, ","),
+		strings.Join(formats, ","),
 		b.table,
 	)
 
@@ -409,11 +409,11 @@ type Column struct {
 	Suffix string
 }
 
-func CreateTable(table string, fields []Column) *TableBuilder {
+func CreateTable(table string, columns []Column) *TableBuilder {
 	return &TableBuilder{
-		action: actionCreateTable,
-		table:  table,
-		fields: fields,
+		action:  actionCreateTable,
+		table:   table,
+		columns: columns,
 	}
 }
 
@@ -433,11 +433,11 @@ func CreateTableWithStructIfNotExists(i interface{}) *TableBuilder {
 	}
 }
 
-func CreateTableIfNotExists(table string, fields []Column) *TableBuilder {
+func CreateTableIfNotExists(table string, columns []Column) *TableBuilder {
 	return &TableBuilder{
-		action: actionCreateTableIfNotExists,
-		table:  table,
-		fields: fields,
+		action:  actionCreateTableIfNotExists,
+		table:   table,
+		columns: columns,
 	}
 }
 
@@ -469,20 +469,20 @@ func DropTableWithStructIfExists(i interface{}) *TableBuilder {
 	}
 }
 
-func (field Column) Build() Template {
-	template := fmt.Sprintf("%s %s", field.Name, field.Type)
-	if field.Suffix != "" {
-		template += field.Suffix
+func (c Column) Build() Template {
+	template := fmt.Sprintf("%s %s", c.Name, c.Type)
+	if c.Suffix != "" {
+		template += c.Suffix
 	}
 	return New(template)
 }
 
-type dbFieldSlice []Column
+type columnSlice []Column
 
-func (fields dbFieldSlice) names() []string {
+func (cs columnSlice) names() []string {
 	var result []string
-	for _, field := range fields {
-		result = append(result, field.Name)
+	for _, c := range cs {
+		result = append(result, c.Name)
 	}
 	return result
 }
@@ -491,7 +491,7 @@ type TableBuilder struct {
 	action     string
 	dialet     string
 	table      string
-	fields     dbFieldSlice
+	columns    columnSlice
 	structType reflect.Type
 	prepends   []Template
 	appends    []Template
@@ -531,9 +531,9 @@ func (b *TableBuilder) Build() Template {
 	case actionCreateTable, actionCreateTableIfNotExists,
 		actionCreateTableWithStruct, actionCreateTableWithStructIfNotExists:
 		if b.action == actionCreateTableWithStruct || b.action == actionCreateTableWithStructIfNotExists {
-			b.fields = structFields(b.structType).columns(b.dialet)
+			b.columns = structFields(b.structType).columns(b.dialet)
 		}
-		if len(b.fields) == 0 {
+		if len(b.columns) == 0 {
 			break
 		}
 		if buffer.Len() > 0 && !strings.HasSuffix(buffer.String(), "\n") {
@@ -545,11 +545,11 @@ func (b *TableBuilder) Build() Template {
 		case actionCreateTableIfNotExists, actionCreateTableWithStructIfNotExists:
 			buffer.WriteString(fmt.Sprintf("create table if not exists %s (\n", b.table))
 		}
-		for i, field := range b.fields {
-			s := field.Build()
+		for i, c := range b.columns {
+			s := c.Build()
 			buffer.WriteString("  ")
 			buffer.WriteString(s.Format)
-			if i < len(b.fields)-1 {
+			if i < len(b.columns)-1 {
 				buffer.WriteString(",\n")
 			} else {
 				buffer.WriteString("\n")
