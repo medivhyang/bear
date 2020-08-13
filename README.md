@@ -65,7 +65,7 @@ bear.Select("order", "order.id", "order.user_id", "user.name").
 		Build()
 
 // sql: select order.id,order.user_id,user.name from order left join user on user.id = order.user_id where (order.id = ?)
-// values: {"Alice"}
+// values: {1}
 ```
 
 Select sub query:
