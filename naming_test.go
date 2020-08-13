@@ -11,8 +11,8 @@ func Test_parseWords(t *testing.T) {
 		s         string
 		wantWords []string
 	}{
-		{name: "helloWorld", s: "helloWorld", wantWords: []string{"hello", "world"}},
 		{name: "HelloWorld", s: "HelloWorld", wantWords: []string{"hello", "world"}},
+		{name: "helloWorld", s: "helloWorld", wantWords: []string{"hello", "world"}},
 		{name: "hello_world", s: "hello_world", wantWords: []string{"hello", "world"}},
 		{name: "hello__world", s: "hello__world", wantWords: []string{"hello", "world"}},
 		{name: "hello world", s: "hello world", wantWords: []string{"hello", "world"}},

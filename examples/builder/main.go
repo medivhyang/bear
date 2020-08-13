@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/medivhyang/bear"
-	"github.com/medivhyang/bear/expr"
 	"time"
+
+	"github.com/medivhyang/bear"
+	_ "github.com/medivhyang/bear/dialect/sqlite3"
+	"github.com/medivhyang/bear/expr"
 )
 
 func main() {
@@ -13,12 +15,14 @@ func main() {
 		template bear.Template
 	}{
 		{prefix: "demo select:", template: demoSelect()},
+		{prefix: "demo select with struct:", template: demoSelectWithStruct()},
+		{prefix: "demo select where:", template: demoSelectWhere()},
 		{prefix: "demo select join:", template: demoSelectJoin()},
 		{prefix: "demo select sub query:", template: demoSelectSubQuery()},
-		{prefix: "demo dialect:", template: demoDialect()},
 		{prefix: "demo insert:", template: demoInsert()},
 		{prefix: "demo update:", template: demoUpdate()},
 		{prefix: "demo delete:", template: demoDelete()},
+		{prefix: "demo dialect:", template: demoDialect()},
 	}
 
 	for index, item := range items {
@@ -45,35 +49,28 @@ type user struct {
 }
 
 func demoSelect() bear.Template {
-	return bear.SelectWithStruct(user{}).Where("age > ?", 20).Build()
+	return bear.Select("user", "id", "name", "age", "role", "created").Where("id = ?", 1).Build()
+}
+
+func demoSelectWithStruct() bear.Template {
+	return bear.SelectWithStruct(user{}).Where("id = ?", 1).Build()
+}
+
+func demoSelectWhere() bear.Template {
+	return bear.SelectWhere(user{ID: 1}).Build()
 }
 
 func demoSelectJoin() bear.Template {
 	return bear.Select(bear.TableName(user{}), "order.id", "order.user_id", "user.name").
 		Join("left join order on user.id = order.user_id").
-		WhereWithTemplate(expr.Equal("user.name", "Alice")).
+		Where("user.name = ?", "Alice").
 		Build()
 }
 
 func demoSelectSubQuery() bear.Template {
 	return bear.SelectWithStruct(user{}).
-		WhereWithTemplate(expr.GreaterEqualTemplate("age", bear.Select(bear.TableName(user{}), "avg(age)").Build())).
+		WhereWithTemplate(expr.GreaterEqualTemplate("age", bear.Select("user", "avg(age)").Build())).
 		Build()
-}
-
-func demoDialect() bear.Template {
-	type user struct {
-		Name        string
-		Age         int
-		Created     time.Time
-		IgnoreField string `bear:"-"`
-	}
-
-	return bear.CreateTableWithStructIfNotExists(user{}).Dialect("sqlite3").Build()
-
-	// or
-	//bear.SetDefaultDialect("sqlite3")
-	//return bear.CreateTableWithStructIfNotExists(user{}).Build()
 }
 
 func demoInsert() bear.Template {
@@ -91,5 +88,20 @@ func demoUpdate() bear.Template {
 }
 
 func demoDelete() bear.Template {
-	return bear.Delete("user").Build()
+	return bear.Delete("user").Where("id = ?", 1).Build()
+}
+
+func demoDialect() bear.Template {
+	type foo struct {
+		Name        string
+		Age         int
+		Created     time.Time
+		IgnoreField string `bear:"-"`
+	}
+
+	return bear.CreateTableWithStructIfNotExists(foo{}).Dialect("sqlite3").Build()
+
+	// or
+	// bear.SetDefaultDialect("sqlite3")
+	// return bear.CreateTableWithStructIfNotExists(foo{}).Build()
 }
