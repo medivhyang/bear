@@ -477,21 +477,11 @@ func (c Column) Build() Template {
 	return New(template)
 }
 
-type columnSlice []Column
-
-func (cs columnSlice) names() []string {
-	var result []string
-	for _, c := range cs {
-		result = append(result, c.Name)
-	}
-	return result
-}
-
 type TableBuilder struct {
 	action     string
 	dialect    string
 	table      string
-	columns    columnSlice
+	columns    []Column
 	structType reflect.Type
 	prepends   []Template
 	appends    []Template
