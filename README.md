@@ -1,6 +1,6 @@
 # Bear
 
-Bear is a sql builder.
+Bear is a go sql builder.
 
 ## Why Bear
 
@@ -8,7 +8,7 @@ Bear is a sql builder.
 2. Native, compatible with standard libary.
 3. Rich features, support dialect, struct binding and complex query etc.
 4. Efficient, follow engineering practice.
-5. Templating, the core concept of Bear is template.
+5. Templating, the core concept of bear is template.
 
 ## Quick Start
 
@@ -72,8 +72,9 @@ Select sub query:
 
 ```go
 bear.SelectWithStruct(user{}).
-		WhereWithTemplate(expr.GreaterEqualTemplate("age", bear.Select("user", "avg(age)").Build())).
-		Build()
+		WhereWithTemplate(expr.GreaterEqualTemplate("age",
+			bear.Select("user", "avg(age)").Build()),
+		).Build()
 
 // sql: select id,name,age,role,created from user where (age >= (select avg(age) from user))
 ```
@@ -88,6 +89,7 @@ bear.InsertWithStruct(user{
 		Role:    "teacher",
 		Created: time.Now().Unix(),
 	}).Build()
+
 // sql: insert into user(role,created,id,name,age) values(?,?,?,?,?)
 // values: {"teacher", 1597288323, 1, "Medivh", 20}
 ```
@@ -97,7 +99,6 @@ Update:
 ```go
 bear.UpdateWithStruct(user{Name: "New Name"}).Where("id = ?", 1).Build()
 
-// result: 
 // sql: update user set name=? where (id = ?)
 // values: {"New Name", 1}}
 ```
@@ -107,7 +108,6 @@ Delete:
 ```go
 bear.Delete("user").Where("id = ?", 1).Build()
 
-// result:
 // sql: delete from user where (id = ?)
 // values: {1}
 ```
@@ -128,7 +128,6 @@ return bear.CreateTableWithStructIfNotExists(foo{}).Dialect("sqlite3").Build()
 // bear.SetDefaultDialect("sqlite3")
 // return bear.CreateTableWithStructIfNotExists(foo{}).Build()
 
-// result:
 // sql:
 // create table if not exists foo (
 //  name text,

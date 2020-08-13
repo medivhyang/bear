@@ -69,8 +69,9 @@ func demoSelectJoin() bear.Template {
 
 func demoSelectSubQuery() bear.Template {
 	return bear.SelectWithStruct(user{}).
-		WhereWithTemplate(expr.GreaterEqualTemplate("age", bear.Select("user", "avg(age)").Build())).
-		Build()
+		WhereWithTemplate(expr.GreaterEqualTemplate("age",
+			bear.Select("user", "avg(age)").Build()),
+		).Build()
 }
 
 func demoInsert() bear.Template {
