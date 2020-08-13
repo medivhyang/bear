@@ -59,12 +59,12 @@ bear.SelectWhere(user{ID: 1}).Build()
 Select join:
 
 ```go
-bear.Select(bear.TableName(user{}), "order.id", "order.user_id", "user.name").
-		Join("left join order on user.id = order.user_id").
-		Where("user.name = ?", "Alice").
+bear.Select("order", "order.id", "order.user_id", "user.name").
+		Join("left join user on user.id = order.user_id").
+		Where("order.id = ?", 1).
 		Build()
 
-// sql: select order.id,order.user_id,user.name from user left join order on user.id = order.user_id where (user.name = ?)
+// sql: select order.id,order.user_id,user.name from order left join user on user.id = order.user_id where (order.id = ?)
 // values: {"Alice"}
 ```
 

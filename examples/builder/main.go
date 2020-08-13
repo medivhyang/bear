@@ -61,9 +61,9 @@ func demoSelectWhere() bear.Template {
 }
 
 func demoSelectJoin() bear.Template {
-	return bear.Select(bear.TableName(user{}), "order.id", "order.user_id", "user.name").
-		Join("left join order on user.id = order.user_id").
-		Where("user.name = ?", "Alice").
+	return bear.Select("order", "order.id", "order.user_id", "user.name").
+		Join("left join user on user.id = order.user_id").
+		Where("order.id = ?", 1).
 		Build()
 }
 
