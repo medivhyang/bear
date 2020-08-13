@@ -23,17 +23,17 @@ type (
 	}
 )
 
-func Select(table string, names ...string) *queryBuilder {
+func Select(table string, columns ...string) *queryBuilder {
 	b := queryBuilder{table: table}
-	for _, name := range names {
-		b.columns = append(b.columns, Template{Format: name})
+	for _, column := range columns {
+		b.columns = append(b.columns, New(column))
 	}
 	return &b
 }
 
-func SelectWithTemplate(table string, templates ...Template) *queryBuilder {
+func SelectWithTemplate(table string, columns ...Template) *queryBuilder {
 	b := queryBuilder{table: table}
-	b.columns = append(b.columns, templates...)
+	b.columns = append(b.columns, columns...)
 	return &b
 }
 
