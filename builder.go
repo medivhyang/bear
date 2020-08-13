@@ -38,11 +38,11 @@ func SelectWithTemplate(table string, templates ...Template) *queryBuilder {
 }
 
 func SelectWithStruct(i interface{}) *queryBuilder {
-	return Select(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...)
+	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...)
 }
 
 func SelectWhere(i interface{}) *queryBuilder {
-	return Select(TableName(i), structFields(reflect.TypeOf(i)).dbFieldNames()...).WhereWithStruct(i)
+	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...).WhereWithStruct(i)
 }
 
 type queryBuilder struct {
@@ -403,13 +403,13 @@ const (
 	actionDropTableIfExists                = "drop_table_if_exists"
 )
 
-type DBField struct {
+type Column struct {
 	Name   string
 	Type   string
 	Suffix string
 }
 
-func CreateTable(table string, fields []DBField) *TableBuilder {
+func CreateTable(table string, fields []Column) *TableBuilder {
 	return &TableBuilder{
 		action: actionCreateTable,
 		table:  table,
@@ -433,7 +433,7 @@ func CreateTableWithStructIfNotExists(i interface{}) *TableBuilder {
 	}
 }
 
-func CreateTableIfNotExists(table string, fields []DBField) *TableBuilder {
+func CreateTableIfNotExists(table string, fields []Column) *TableBuilder {
 	return &TableBuilder{
 		action: actionCreateTableIfNotExists,
 		table:  table,
@@ -469,7 +469,7 @@ func DropTableWithStructIfExists(i interface{}) *TableBuilder {
 	}
 }
 
-func (field DBField) Build() Template {
+func (field Column) Build() Template {
 	template := fmt.Sprintf("%s %s", field.Name, field.Type)
 	if field.Suffix != "" {
 		template += field.Suffix
@@ -477,7 +477,7 @@ func (field DBField) Build() Template {
 	return New(template)
 }
 
-type dbFieldSlice []DBField
+type dbFieldSlice []Column
 
 func (fields dbFieldSlice) names() []string {
 	var result []string
@@ -531,7 +531,7 @@ func (b *TableBuilder) Build() Template {
 	case actionCreateTable, actionCreateTableIfNotExists,
 		actionCreateTableWithStruct, actionCreateTableWithStructIfNotExists:
 		if b.action == actionCreateTableWithStruct || b.action == actionCreateTableWithStructIfNotExists {
-			b.fields = structFields(b.structType).dbFields(b.dialet)
+			b.fields = structFields(b.structType).columns(b.dialet)
 		}
 		if len(b.fields) == 0 {
 			break

@@ -25,9 +25,9 @@ type structField struct {
 	tag   map[string]string
 }
 
-func (field structField) dbField(driverName string) (DBField, bool) {
-	result := DBField{}
-	name := field.dbFieldName()
+func (field structField) column(driverName string) (Column, bool) {
+	result := Column{}
+	name := field.columnName()
 	if name == "" {
 		return result, false
 	}
@@ -48,7 +48,7 @@ func (field structField) dbField(driverName string) (DBField, bool) {
 	return result, true
 }
 
-func (field structField) dbFieldName() string {
+func (field structField) columnName() string {
 	if _, ok := field.tag[tagNestedKeyIgnore]; ok {
 		return ""
 	}
@@ -60,7 +60,7 @@ func (field structField) dbFieldName() string {
 
 type structFieldSlice []structField
 
-var _structFieldsCache = sync.Map{}
+var structFieldsCache = sync.Map{}
 
 func structFields(typo reflect.Type) structFieldSlice {
 	for typo.Kind() == reflect.Ptr {
@@ -70,7 +70,7 @@ func structFields(typo reflect.Type) structFieldSlice {
 		panic("bear: get struct fields: require struct kind type")
 	}
 	if typo.String() != "" {
-		if v, ok := _structFieldsCache.Load(typo.String()); ok {
+		if v, ok := structFieldsCache.Load(typo.String()); ok {
 			if v, ok := v.([]structField); ok {
 				return v
 			}
@@ -89,7 +89,7 @@ func structFields(typo reflect.Type) structFieldSlice {
 		result = append(result, item)
 	}
 	if typo.String() != "" {
-		_structFieldsCache.Store(typo.String(), result)
+		structFieldsCache.Store(typo.String(), result)
 	}
 	return result
 }
@@ -103,7 +103,7 @@ func (fields structFieldSlice) findFieldByIndex(index int) (*structField, bool) 
 	return nil, false
 }
 
-func (fields structFieldSlice) findFieldByName(name string) (*structField, bool) {
+func (fields structFieldSlice) findFieldByColumn(name string) (*structField, bool) {
 	for _, field := range fields {
 		if _, ok := field.tag[tagNestedKeyIgnore]; ok {
 			continue
@@ -113,35 +113,35 @@ func (fields structFieldSlice) findFieldByName(name string) (*structField, bool)
 		}
 	}
 	for _, field := range fields {
-		if field.name == name {
+		if toKebab(field.name) == name {
 			return &field, true
 		}
 	}
 	return nil, false
 }
 
-func (fields structFieldSlice) findIndexByName(name string) (int, bool) {
-	field, ok := fields.findFieldByName(name)
+func (fields structFieldSlice) findIndexByColumn(name string) (int, bool) {
+	field, ok := fields.findFieldByColumn(name)
 	if ok {
 		return field.index, true
 	}
 	return -1, false
 }
 
-func (fields structFieldSlice) dbFields(dialect string) []DBField {
-	var result []DBField
+func (fields structFieldSlice) columns(dialect string) []Column {
+	var result []Column
 	for _, field := range fields {
-		if dbField, ok := field.dbField(dialect); ok {
-			result = append(result, dbField)
+		if c, ok := field.column(dialect); ok {
+			result = append(result, c)
 		}
 	}
 	return result
 }
 
-func (fields structFieldSlice) dbFieldNames() []string {
+func (fields structFieldSlice) columnNames() []string {
 	var result []string
 	for _, field := range fields {
-		name := field.dbFieldName()
+		name := field.columnName()
 		if name != "" {
 			result = append(result, name)
 		}
@@ -156,7 +156,7 @@ func findStructFieldIndex(typo reflect.Type, name string) (int, bool) {
 	if typo.Kind() != reflect.Struct {
 		panic("bear: get struct field name: require struct kind type")
 	}
-	return structFields(typo).findIndexByName(name)
+	return structFields(typo).findIndexByColumn(name)
 }
 
 func parseTag(t string) map[string]string {
@@ -196,7 +196,7 @@ func structToValueMap(value reflect.Value, includeZeroValue bool) map[string]int
 		if !ok {
 			continue
 		}
-		name := structField.dbFieldName()
+		name := structField.columnName()
 		if name == "" {
 			continue
 		}

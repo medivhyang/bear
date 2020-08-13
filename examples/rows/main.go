@@ -23,13 +23,14 @@ type user struct {
 var db *sql.DB
 
 func init() {
+	bear.EnableDebug(false)
+	bear.SetDefaultDialect("sqlite3")
+
 	var err error
 	db, err = openSqlite3("data.db")
 	if err != nil {
 		panic(err)
 	}
-
-	bear.SetDefaultDialect("sqlite3")
 
 	if _, err := bear.DropTableWithStructIfExists(user{}).Execute(db); err != nil {
 		panic(err)
