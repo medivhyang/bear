@@ -115,6 +115,8 @@ bear.Delete("user").Where("id = ?", 1).Build()
 Dialect:
 
 ```go
+// import _ "github.com/medivhyang/bear/dialect/sqlite3"
+
 type foo struct {
     Name        string
     Age         int
@@ -122,7 +124,7 @@ type foo struct {
     IgnoreField string `bear:"-"`
 }
 
-return bear.CreateTableWithStructIfNotExists(foo{}).Dialect("sqlite3").Build()
+bear.CreateTableWithStructIfNotExists(foo{}).Dialect("sqlite3").Build()
 
 // or
 // bear.SetDefaultDialect("sqlite3")
