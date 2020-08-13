@@ -489,7 +489,7 @@ func (cs columnSlice) names() []string {
 
 type TableBuilder struct {
 	action     string
-	dialet     string
+	dialect    string
 	table      string
 	columns    columnSlice
 	structType reflect.Type
@@ -498,7 +498,7 @@ type TableBuilder struct {
 }
 
 func (b *TableBuilder) Dialect(name string) *TableBuilder {
-	b.dialet = name
+	b.dialect = name
 	return b
 }
 
@@ -531,7 +531,7 @@ func (b *TableBuilder) Build() Template {
 	case actionCreateTable, actionCreateTableIfNotExists,
 		actionCreateTableWithStruct, actionCreateTableWithStructIfNotExists:
 		if b.action == actionCreateTableWithStruct || b.action == actionCreateTableWithStructIfNotExists {
-			b.columns = structFields(b.structType).columns(b.dialet)
+			b.columns = structFields(b.structType).columns(b.dialect)
 		}
 		if len(b.columns) == 0 {
 			break
