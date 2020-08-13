@@ -1,6 +1,8 @@
 package bear
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func ExampleSelect() {
 	t := Select("user", "id", "name", "age").Where("age > ?", 20).Build()
@@ -70,4 +72,15 @@ func ExampleDelete() {
 	// Output:
 	// delete from user where (id = ?)
 	// [1]
+}
+
+func ExampleTemplateString() {
+	t := Select("user", "id", "name", "age").
+		Where("age > ?", 20).
+		Where("name like ?", "M%").
+		Build()
+	fmt.Println(t)
+
+	// Output:
+	// "select id,name,age from user where (age > ?) and (name like ?)" <= {20, "M%"}
 }

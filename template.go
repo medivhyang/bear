@@ -3,6 +3,8 @@ package bear
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 )
 
 type Template struct {
@@ -74,6 +76,7 @@ func (t Template) Query(querier Querier) (*Rows, error) {
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
+	debugf("query: %s\n", t)
 	rows, err := querier.Query(t.Format, t.Values...)
 	if err != nil {
 		return nil, err
@@ -85,6 +88,7 @@ func (t Template) QueryWithContext(querier WithContextQuerier, ctx context.Conte
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
+	debugf("query: %s\n", t)
 	rows, err := querier.QueryContext(ctx, t.Format, t.Values...)
 	if err != nil {
 		return nil, err
@@ -96,6 +100,7 @@ func (t Template) Execute(executor Executor) (*Result, error) {
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
+	debugf("exec: %s\n", t)
 	result, err := executor.Exec(t.Format, t.Values...)
 	if err != nil {
 		return nil, err
@@ -107,6 +112,7 @@ func (t Template) ExecuteWitchContext(executor WithContextExectutor, ctx context
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
+	debugf("exec: %s\n", t)
 	result, err := executor.ExecContext(ctx, t.Format, t.Values...)
 	if err != nil {
 		return nil, err
@@ -116,4 +122,22 @@ func (t Template) ExecuteWitchContext(executor WithContextExectutor, ctx context
 
 func (t Template) IsEmpty() bool {
 	return t.Format == "" && len(t.Values) == 0
+}
+
+func (t Template) String() string {
+	buffer := strings.Builder{}
+	buffer.WriteString(fmt.Sprintf("%q", t.Format))
+	if len(t.Values) == 0 {
+		return buffer.String()
+	}
+	buffer.WriteString(" <= ")
+	buffer.WriteString("{")
+	for index, value := range t.Values {
+		if index > 0 {
+			buffer.WriteString(", ")
+		}
+		buffer.WriteString(fmt.Sprintf("%#v", value))
+	}
+	buffer.WriteString("}")
+	return buffer.String()
 }

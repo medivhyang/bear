@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	bear.EnableDebug(false)
+
 	items := []struct {
 		prefix   string
 		template bear.Template
@@ -30,7 +32,7 @@ func main() {
 			fmt.Println()
 		}
 		fmt.Println(item.prefix)
-		fmt.Printf("%#v\n", item.template)
+		fmt.Println(item.template)
 	}
 }
 
