@@ -167,7 +167,7 @@ func parseTag(t string) map[string]string {
 	}
 	items := strings.Split(t, ",")
 	for _, item := range items {
-		pair := strings.Split(item, "=")
+		pair := strings.Split(item, ":")
 		var k, v string
 		switch {
 		case len(pair) == 1:
