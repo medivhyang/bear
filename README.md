@@ -47,7 +47,7 @@ bear.SelectWithStruct(user{}).Where("id = ?", 1).Build()
 // values: {1}
 ```
 
-Select where
+Select where:
 
 ```go
 bear.SelectWhere(user{ID: 1}).Build()
