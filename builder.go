@@ -471,8 +471,9 @@ func DropTableWithStructIfExists(i interface{}) *TableBuilder {
 
 func (c Column) Build() Template {
 	template := fmt.Sprintf("%s %s", c.Name, c.Type)
-	if c.Suffix != "" {
-		template += c.Suffix
+	suffix := c.Suffix
+	if suffix != "" {
+		template += " " + suffix
 	}
 	return New(template)
 }
