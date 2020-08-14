@@ -196,8 +196,8 @@ func (b *queryBuilder) Query(querier Querier) (*Rows, error) {
 	return b.Build().Query(querier)
 }
 
-func (b *queryBuilder) QueryWithContext(querier WithContextQuerier, ctx context.Context) (*Rows, error) {
-	return b.Build().QueryWithContext(querier, ctx)
+func (b *queryBuilder) QueryWithContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
+	return b.Build().QueryWithContext(ctx, querier)
 }
 
 const (
@@ -317,8 +317,8 @@ func (b *commandBuilder) Execute(exectutor Executor) (*Result, error) {
 	return b.Build().Execute(exectutor)
 }
 
-func (b *commandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx context.Context) (*Result, error) {
-	return b.Build().ExecuteWitchContext(exectutor, ctx)
+func (b *commandBuilder) ExecuteWithContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
+	return b.Build().ExecuteWitchContext(ctx, exectutor)
 }
 
 type conditionBuilder []Template
@@ -547,6 +547,6 @@ func (b *TableBuilder) Execute(executor Executor) (*Result, error) {
 	return b.Build().Execute(executor)
 }
 
-func (b *TableBuilder) ExecuteWitchContext(executor WithContextExectutor, ctx context.Context) (*Result, error) {
-	return b.Build().ExecuteWitchContext(executor, ctx)
+func (b *TableBuilder) ExecuteWitchContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
+	return b.Build().ExecuteWitchContext(ctx, executor)
 }

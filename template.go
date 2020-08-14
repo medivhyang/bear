@@ -84,7 +84,7 @@ func (t Template) Query(querier Querier) (*Rows, error) {
 	return WrapRows(rows), nil
 }
 
-func (t Template) QueryWithContext(querier WithContextQuerier, ctx context.Context) (*Rows, error) {
+func (t Template) QueryWithContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
@@ -108,7 +108,7 @@ func (t Template) Execute(executor Executor) (*Result, error) {
 	return WrapResult(result), nil
 }
 
-func (t Template) ExecuteWitchContext(executor WithContextExectutor, ctx context.Context) (*Result, error) {
+func (t Template) ExecuteWitchContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
