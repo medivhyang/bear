@@ -182,7 +182,7 @@ func parseTag(t string) map[string]string {
 	return result
 }
 
-func structToValueMap(value reflect.Value, includeZeroValue bool, ignoreColumns ...string) map[string]interface{} {
+func structToColumnValueMap(value reflect.Value, includeZeroValue bool, ignoreColumns ...string) map[string]interface{} {
 	for value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
