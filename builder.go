@@ -216,7 +216,7 @@ func Insert(table string, pairs map[string]interface{}) *commandBuilder {
 }
 
 func InsertWithStruct(i interface{}) *commandBuilder {
-	return Insert(TableName(i), structToValueMap(reflect.ValueOf(i), true))
+	return Insert(TableName(i), structToValueMap(reflect.ValueOf(i), false))
 }
 
 func Update(table string, pairs map[string]interface{}) *commandBuilder {
