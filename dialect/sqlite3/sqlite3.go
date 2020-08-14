@@ -3,6 +3,7 @@ package sqlite3
 import (
 	"strings"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/medivhyang/bear"
 )
 
