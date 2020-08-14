@@ -321,76 +321,54 @@ func (b *commandBuilder) ExecuteWithContext(exectutor WithContextExectutor, ctx 
 	return b.Build().ExecuteWitchContext(exectutor, ctx)
 }
 
-type conditionBuilder struct {
-	conditions []string
-	names      []string
-	values     []interface{}
-}
+type conditionBuilder []Template
 
-func (b *conditionBuilder) Append(items ...Template) *conditionBuilder {
-	for _, item := range items {
-		b.conditions = append(b.conditions, item.Format)
-		b.values = append(b.values, item.Values...)
+func (b *conditionBuilder) Append(templates ...Template) *conditionBuilder {
+	for _, t := range templates {
+		if !t.IsEmpty() {
+			*b = append(*b, t)
+		}
 	}
 	return b
 }
 
 func (b *conditionBuilder) WithMap(m map[string]interface{}) *conditionBuilder {
 	var (
-		items  []string
-		values []interface{}
+		formats []string
+		values  []interface{}
 	)
 	for k, v := range m {
-		items = append(items, fmt.Sprintf("%s = ?", k))
+		formats = append(formats, fmt.Sprintf("%s = ?", k))
 		values = append(values, v)
 	}
-	template := strings.Join(items, " and ")
-	if template != "" {
-		b.conditions = append(b.conditions, template)
-		b.values = append(b.values, values...)
-	}
+	b.Append(New(strings.Join(formats, " and "), values...))
 	return b
 }
 
 func (b *conditionBuilder) WithStruct(i interface{}) *conditionBuilder {
-	var (
-		items  []string
-		values []interface{}
-	)
 	m := structToValueMap(reflect.ValueOf(i), false)
+	var (
+		formats []string
+		values  []interface{}
+	)
 	for k, v := range m {
-		items = append(items, fmt.Sprintf("%s = ?", k))
+		formats = append(formats, fmt.Sprintf("%s = ?", k))
 		values = append(values, v)
 	}
-	template := strings.Join(items, " and ")
-	if template != "" {
-		b.conditions = append(b.conditions, template)
-		b.values = append(b.values, values...)
-	}
+	b.Append(New(strings.Join(formats, " and "), values...))
 	return b
 }
 
 func (b *conditionBuilder) Build() Template {
-	if len(b.conditions) == 0 {
-		return Template{}
+	if len(*b) == 0 {
+		return Empty()
 	}
-
-	names := make([]string, len(b.names))
-	copy(names, b.names)
-
-	values := make([]interface{}, len(b.values))
-	copy(values, b.values)
-
-	var conditions []string
-	for _, condition := range b.conditions {
-		conditions = append(conditions, "("+condition+")")
+	result := Empty()
+	for _, condition := range *b {
+		if strings.TrimSpace(condition.Format) != "" {
+			result.Join(condition.WrapBracket(), " and ")
+		}
 	}
-
-	result := Template{
-		Format: strings.Join(conditions, " and "),
-		Values: values,
-	}
-
 	return result
 }
 
