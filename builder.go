@@ -324,6 +324,9 @@ func (b *commandBuilder) ExecuteWithContext(ctx context.Context, exectutor WithC
 type conditionBuilder []Template
 
 func (b *conditionBuilder) Append(templates ...Template) *conditionBuilder {
+	if *b == nil {
+		*b = []Template{}
+	}
 	for _, t := range templates {
 		if !t.IsEmpty() {
 			*b = append(*b, t)
