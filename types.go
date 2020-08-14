@@ -182,7 +182,7 @@ func parseTag(t string) map[string]string {
 	return result
 }
 
-func structToValueMap(value reflect.Value, includeZeroValue bool) map[string]interface{} {
+func structToValueMap(value reflect.Value, includeZeroValue bool, ignoreColumns ...string) map[string]interface{} {
 	for value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
@@ -198,6 +198,16 @@ func structToValueMap(value reflect.Value, includeZeroValue bool) map[string]int
 		}
 		name := structField.columnName()
 		if name == "" {
+			continue
+		}
+		ignoreFlag := false
+		for _, column := range ignoreColumns {
+			if column == name {
+				ignoreFlag = true
+				break
+			}
+		}
+		if ignoreFlag {
 			continue
 		}
 		valueField := value.Field(i)
