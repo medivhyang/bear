@@ -49,7 +49,14 @@ func (t Template) Join(other Template, sep ...string) Template {
 	if len(sep) > 0 {
 		finalSep = sep[0]
 	}
-	return t.Append(finalSep+other.Format, other.Values...)
+	var newFormat string
+	if newFormat == "" {
+		newFormat = other.Format
+	} else {
+		newFormat = t.Format + finalSep + other.Format
+	}
+	newValues := append(t.Values, other.Values...)
+	return New(newFormat, newValues)
 }
 
 func (t Template) And(other Template) Template {
