@@ -56,7 +56,7 @@ func (t Template) Join(other Template, sep ...string) Template {
 		newFormat = t.Format + finalSep + other.Format
 	}
 	newValues := append(t.Values, other.Values...)
-	return New(newFormat, newValues)
+	return New(newFormat, newValues...)
 }
 
 func (t Template) And(other Template) Template {
