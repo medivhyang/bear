@@ -78,7 +78,7 @@ func (b *queryBuilder) JoinWithTemplate(templates ...Template) *queryBuilder {
 }
 
 func (b *queryBuilder) Where(format string, values ...interface{}) *queryBuilder {
-	b.where.Append(Template{Format: format, Values: values})
+	b.where.Append(New(format, values...))
 	return b
 }
 
@@ -216,7 +216,7 @@ func Insert(table string, pairs map[string]interface{}) *commandBuilder {
 }
 
 func InsertWithStruct(i interface{}, ignoreColumns ...string) *commandBuilder {
-	return Insert(TableName(i), structToValueMap(reflect.ValueOf(i), true, ignoreColumns...))
+	return Insert(TableName(i), structToColumnValueMap(reflect.ValueOf(i), true, ignoreColumns...))
 }
 
 func Update(table string, pairs map[string]interface{}) *commandBuilder {
@@ -229,7 +229,7 @@ func Update(table string, pairs map[string]interface{}) *commandBuilder {
 }
 
 func UpdateWithStruct(i interface{}) *commandBuilder {
-	return Update(TableName(i), structToValueMap(reflect.ValueOf(i), false))
+	return Update(TableName(i), structToColumnValueMap(reflect.ValueOf(i), false))
 }
 
 func Delete(table string) *commandBuilder {
@@ -324,9 +324,6 @@ func (b *commandBuilder) ExecuteWithContext(ctx context.Context, exectutor WithC
 type conditionBuilder []Template
 
 func (b *conditionBuilder) Append(templates ...Template) *conditionBuilder {
-	if *b == nil {
-		*b = []Template{}
-	}
 	for _, t := range templates {
 		if !t.IsEmpty() {
 			*b = append(*b, t)
@@ -349,7 +346,7 @@ func (b *conditionBuilder) WithMap(m map[string]interface{}) *conditionBuilder {
 }
 
 func (b *conditionBuilder) WithStruct(i interface{}) *conditionBuilder {
-	m := structToValueMap(reflect.ValueOf(i), false)
+	m := structToColumnValueMap(reflect.ValueOf(i), false)
 	var (
 		formats []string
 		values  []interface{}
@@ -369,7 +366,7 @@ func (b *conditionBuilder) Build() Template {
 	result := Empty()
 	for _, condition := range *b {
 		if strings.TrimSpace(condition.Format) != "" {
-			result.Join(condition.WrapBracket(), " and ")
+			result = result.Join(condition.WrapBracket(), " and ")
 		}
 	}
 	return result

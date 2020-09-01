@@ -2,6 +2,7 @@ package bear
 
 import (
 	"fmt"
+	"testing"
 )
 
 func ExampleSelect() {
@@ -83,4 +84,8 @@ func ExampleTemplateString() {
 
 	// Output:
 	// "select id,name,age from user where (age > ?) and (name like ?)" <= {20, "M%"}
+}
+
+func Test_conditionBuilder_Append(t *testing.T) {
+	t.Log(Select("user", "name").Where("id = ?", 1).Build())
 }
