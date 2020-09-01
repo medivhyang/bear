@@ -50,7 +50,7 @@ func (t Template) Join(other Template, sep ...string) Template {
 		finalSep = sep[0]
 	}
 	var newFormat string
-	if newFormat == "" {
+	if t.Format == "" {
 		newFormat = other.Format
 	} else {
 		newFormat = t.Format + finalSep + other.Format
