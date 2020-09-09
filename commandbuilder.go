@@ -17,29 +17,28 @@ type commandBuilder struct {
 	action  string
 	dialect string
 	table   string
-	names   []string
-	values  []interface{}
+	columns []Template
+	include map[string]bool
+	exclude map[string]bool
 	where   Condition
 }
 
 func Insert(table string, pairs map[string]interface{}) *commandBuilder {
 	b := &commandBuilder{table: table, action: actionInsert}
 	for k, v := range pairs {
-		b.names = append(b.names, k)
-		b.values = append(b.values, v)
+		b.columns = append(b.columns, NewTemplate(k, v))
 	}
 	return b
 }
 
-func InsertStruct(i interface{}, ignoreColumns ...string) *commandBuilder {
-	return Insert(TableName(i), structToColumnValueMap(reflect.ValueOf(i), true, ignoreColumns...))
+func InsertStruct(aStruct interface{}, ignoreColumns ...string) *commandBuilder {
+	return Insert(TableName(aStruct), structToColumnValueMap(reflect.ValueOf(aStruct), true, ignoreColumns...))
 }
 
 func Update(table string, pairs map[string]interface{}) *commandBuilder {
 	b := &commandBuilder{table: table, action: actionUpdate}
 	for k, v := range pairs {
-		b.names = append(b.names, k)
-		b.values = append(b.values, v)
+		b.columns = append(b.columns, NewTemplate(k, v))
 	}
 	return b
 }
@@ -60,6 +59,26 @@ func (b *commandBuilder) Dialect(name string) *commandBuilder {
 
 func (b *commandBuilder) Table(name string) *commandBuilder {
 	b.table = name
+	return b
+}
+
+func (b *commandBuilder) Include(names ...string) *commandBuilder {
+	if b.include == nil {
+		b.include = map[string]bool{}
+	}
+	for _, name := range names {
+		b.include[name] = true
+	}
+	return b
+}
+
+func (b *commandBuilder) Exclude(names ...string) *commandBuilder {
+	if b.exclude == nil {
+		b.exclude = map[string]bool{}
+	}
+	for _, name := range names {
+		b.exclude[name] = true
+	}
 	return b
 }
 
@@ -85,38 +104,46 @@ func (b *commandBuilder) WhereStruct(i interface{}) *commandBuilder {
 
 func (b *commandBuilder) Build() Template {
 	result := Template{}
-
+	columns := b.finalColumns()
 	switch b.action {
 	case actionInsert:
-		var holders []string
-		for i := 0; i < len(b.values); i++ {
+		var (
+			names   []string
+			values  []interface{}
+			holders []string
+		)
+		for _, column := range columns {
+			names = append(names, column.Format)
+			values = append(values, column.Values...)
 			holders = append(holders, "?")
 		}
 		result.Format = fmt.Sprintf("insert into %s(%s) values(%s)",
 			b.table,
-			strings.Join(b.names, ","),
+			strings.Join(names, ","),
 			strings.Join(holders, ","),
 		)
-		result.Values = append(result.Values, b.values...)
+		result.Values = append(result.Values, values...)
 	case actionUpdate:
-		var pairs []string
-		for i := 0; i < len(b.names); i++ {
-			pairs = append(pairs, fmt.Sprintf("%s=?", b.names[i]))
+		var (
+			values []interface{}
+			pairs  []string
+		)
+		for _, column := range columns {
+			values = append(values, column.Values...)
+			pairs = append(pairs, fmt.Sprintf("%s=?", column.Format))
 		}
 		result.Format = fmt.Sprintf("update %s set %s",
 			b.table,
 			strings.Join(pairs, ","),
 		)
-		result.Values = append(result.Values, b.values...)
+		result.Values = append(result.Values, values...)
 	case actionDelete:
 		result.Format = fmt.Sprintf("delete from %s", b.table)
 	}
-
 	where := b.where.Build()
 	if !where.IsEmptyOrWhitespace() {
 		result = result.Join(where, " where ")
 	}
-
 	return result
 }
 
@@ -126,4 +153,28 @@ func (b *commandBuilder) Execute(exectutor Executor) (*Result, error) {
 
 func (b *commandBuilder) ExecuteContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
 	return b.Build().ExecuteContext(ctx, exectutor)
+}
+
+func (b *commandBuilder) finalColumns() []Template {
+	var includedColumns []Template
+	if len(b.include) > 0 {
+		for _, column := range b.columns {
+			if b.include[column.Format] {
+				includedColumns = append(includedColumns, column)
+			}
+		}
+	} else {
+		includedColumns = b.columns
+	}
+	var excludedColumns []Template
+	if len(b.exclude) > 0 {
+		for _, column := range includedColumns {
+			if !b.exclude[column.Format] {
+				excludedColumns = append(excludedColumns, column)
+			}
+		}
+	} else {
+		excludedColumns = includedColumns
+	}
+	return excludedColumns
 }

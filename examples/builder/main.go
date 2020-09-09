@@ -102,9 +102,9 @@ func demoDialect() bear.Template {
 		IgnoreField string `bear:"-"`
 	}
 
-	return bear.CreateTableIfNotExistsStruct(foo{}).Dialect("sqlite3").Build()
+	return bear.CreateTableIfNotExistsWithStruct(foo{}).Dialect("sqlite3").Build()
 
 	// or
 	// bear.SetDefaultDialect("sqlite3")
-	// return bear.CreateTableIfNotExistsStruct(foo{}).Build()
+	// return bear.CreateTableIfNotExistsWithStruct(foo{}).Build()
 }

@@ -32,10 +32,10 @@ func init() {
 		panic(err)
 	}
 
-	if _, err := bear.DropTableIfExistsStruct(user{}).Execute(db); err != nil {
+	if _, err := bear.DropTableIfExistsWithStruct(user{}).Execute(db); err != nil {
 		panic(err)
 	}
-	if _, err := bear.CreateTableIfNotExistsStruct(user{}).Execute(db); err != nil {
+	if _, err := bear.CreateTableIfNotExistsWithStruct(user{}).Execute(db); err != nil {
 		panic(err)
 	}
 
