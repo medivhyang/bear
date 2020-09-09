@@ -12,12 +12,8 @@ type Template struct {
 	Values []interface{}
 }
 
-func New(format string, values ...interface{}) Template {
+func NewTemplate(format string, values ...interface{}) Template {
 	return Template{Format: format, Values: values}
-}
-
-func Empty() Template {
-	return Template{}
 }
 
 func (t Template) Prepend(format string, values ...interface{}) Template {
@@ -56,7 +52,7 @@ func (t Template) Join(other Template, sep ...string) Template {
 		newFormat = t.Format + finalSep + other.Format
 	}
 	newValues := append(t.Values, other.Values...)
-	return New(newFormat, newValues...)
+	return NewTemplate(newFormat, newValues...)
 }
 
 func (t Template) And(other Template) Template {
@@ -91,7 +87,7 @@ func (t Template) Query(querier Querier) (*Rows, error) {
 	return WrapRows(rows), nil
 }
 
-func (t Template) QueryWithContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
+func (t Template) QueryContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
@@ -115,7 +111,7 @@ func (t Template) Execute(executor Executor) (*Result, error) {
 	return WrapResult(result), nil
 }
 
-func (t Template) ExecuteWitchContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
+func (t Template) ExecuteContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
 	if t.IsEmpty() {
 		return nil, errors.New("bear: empty template")
 	}
@@ -128,7 +124,11 @@ func (t Template) ExecuteWitchContext(ctx context.Context, executor WithContextE
 }
 
 func (t Template) IsEmpty() bool {
-	return t.Format == "" && len(t.Values) == 0
+	return t.Format == ""
+}
+
+func (t Template) IsEmptyOrWhitespace() bool {
+	return strings.TrimSpace(t.Format) == ""
 }
 
 func (t Template) String() string {

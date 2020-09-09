@@ -21,7 +21,7 @@ func ExampleSelectWithStruct() {
 		Name string
 		Age  string
 	}
-	t := SelectWithStruct(user{}).Where("age > ?", 20).Build()
+	t := SelectStruct(user{}).Where("age > ?", 20).Build()
 	fmt.Println(t.Format)
 	fmt.Println(t.Values)
 

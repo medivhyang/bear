@@ -55,7 +55,7 @@ func demoSelect() bear.Template {
 }
 
 func demoSelectWithStruct() bear.Template {
-	return bear.SelectWithStruct(user{}).Where("id = ?", 1).Build()
+	return bear.SelectStruct(user{}).Where("id = ?", 1).Build()
 }
 
 func demoSelectWhere() bear.Template {
@@ -70,14 +70,14 @@ func demoSelectJoin() bear.Template {
 }
 
 func demoSelectSubQuery() bear.Template {
-	return bear.SelectWithStruct(user{}).
-		WhereWithTemplate(expr.GreaterEqualTemplate("age",
+	return bear.SelectStruct(user{}).
+		WhereTemplate(expr.GETemplate("age",
 			bear.Select("user", "avg(age)").Build()),
 		).Build()
 }
 
 func demoInsert() bear.Template {
-	return bear.InsertWithStruct(user{
+	return bear.InsertStruct(user{
 		ID:      1,
 		Name:    "Medivh",
 		Age:     20,
@@ -87,7 +87,7 @@ func demoInsert() bear.Template {
 }
 
 func demoUpdate() bear.Template {
-	return bear.UpdateWithStruct(user{Name: "New Name"}).Where("id = ?", 1).Build()
+	return bear.UpdateStruct(user{Name: "New Name"}).Where("id = ?", 1).Build()
 }
 
 func demoDelete() bear.Template {
@@ -102,9 +102,9 @@ func demoDialect() bear.Template {
 		IgnoreField string `bear:"-"`
 	}
 
-	return bear.CreateTableWithStructIfNotExists(foo{}).Dialect("sqlite3").Build()
+	return bear.CreateTableIfNotExistsStruct(foo{}).Dialect("sqlite3").Build()
 
 	// or
 	// bear.SetDefaultDialect("sqlite3")
-	// return bear.CreateTableWithStructIfNotExists(foo{}).Build()
+	// return bear.CreateTableIfNotExistsStruct(foo{}).Build()
 }

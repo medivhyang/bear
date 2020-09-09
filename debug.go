@@ -9,10 +9,12 @@ import (
 )
 
 var (
-	debug       = true
+	debug = true
+
+	errPrefix = "bear: "
+
 	logPrefix   = "bear: "
 	logInstance = log.New(os.Stdout, "", log.LstdFlags)
-	errPrefix   = "bear: "
 )
 
 func EnableDebug(ok bool) {
@@ -30,5 +32,5 @@ func debugf(format string, args ...interface{}) {
 }
 
 func errorf(format string, args ...interface{}) error {
-	return errors.New("bear:" + fmt.Sprintf(format, args...))
+	return errors.New(errPrefix + fmt.Sprintf(format, args...))
 }

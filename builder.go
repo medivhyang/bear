@@ -26,23 +26,23 @@ type (
 func Select(table string, columns ...string) *queryBuilder {
 	b := queryBuilder{table: table}
 	for _, column := range columns {
-		b.columns = append(b.columns, New(column))
+		b.columns = append(b.columns, NewTemplate(column))
 	}
 	return &b
 }
 
-func SelectWithTemplate(table string, columns ...Template) *queryBuilder {
+func SelectTemplate(table string, columns ...Template) *queryBuilder {
 	b := queryBuilder{table: table}
 	b.columns = append(b.columns, columns...)
 	return &b
 }
 
-func SelectWithStruct(i interface{}) *queryBuilder {
+func SelectStruct(i interface{}) *queryBuilder {
 	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...)
 }
 
 func SelectWhere(i interface{}) *queryBuilder {
-	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...).WhereWithStruct(i)
+	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...).WhereStruct(i)
 }
 
 type queryBuilder struct {
@@ -50,9 +50,9 @@ type queryBuilder struct {
 	table   string
 	columns []Template
 	joins   []Template
-	where   conditionBuilder
+	where   Condition
 	groupBy []string
-	having  conditionBuilder
+	having  Condition
 	orderBy []string
 	paging  Template
 }
@@ -72,48 +72,48 @@ func (b *queryBuilder) Join(format string, values ...interface{}) *queryBuilder 
 	return b
 }
 
-func (b *queryBuilder) JoinWithTemplate(templates ...Template) *queryBuilder {
+func (b *queryBuilder) JoinTemplate(templates ...Template) *queryBuilder {
 	b.joins = append(b.joins, templates...)
 	return b
 }
 
 func (b *queryBuilder) Where(format string, values ...interface{}) *queryBuilder {
-	b.where.Append(New(format, values...))
+	b.where = b.where.AppendTemplate(NewTemplate(format, values...))
 	return b
 }
 
-func (b *queryBuilder) WhereWithTemplate(templates ...Template) *queryBuilder {
-	b.where.Append(templates...)
+func (b *queryBuilder) WhereTemplate(templates ...Template) *queryBuilder {
+	b.where = b.where.AppendTemplate(templates...)
 	return b
 }
 
-func (b *queryBuilder) WhereWithMap(m map[string]interface{}) *queryBuilder {
-	b.where.WithMap(m)
+func (b *queryBuilder) WhereMap(m map[string]interface{}) *queryBuilder {
+	b.where = b.where.AppendMap(m)
 	return b
 }
 
-func (b *queryBuilder) WhereWithStruct(i interface{}) *queryBuilder {
-	b.where.WithStruct(i)
+func (b *queryBuilder) WhereStruct(i interface{}) *queryBuilder {
+	b.where = b.where.AppendStruct(i)
 	return b
 }
 
 func (b *queryBuilder) Having(format string, values ...interface{}) *queryBuilder {
-	b.having.Append(Template{Format: format, Values: values})
+	b.having.AppendTemplate(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *queryBuilder) HavingWithTemplate(templates ...Template) *queryBuilder {
-	b.having.Append(templates...)
+func (b *queryBuilder) HavingTemplate(templates ...Template) *queryBuilder {
+	b.having.AppendTemplate(templates...)
 	return b
 }
 
-func (b *queryBuilder) HavingWithMap(m map[string]interface{}) *queryBuilder {
-	b.where.WithMap(m)
+func (b *queryBuilder) HavingMap(m map[string]interface{}) *queryBuilder {
+	b.where.AppendMap(m)
 	return b
 }
 
-func (b *queryBuilder) HavingWithStruct(i interface{}) *queryBuilder {
-	b.where.WithStruct(i)
+func (b *queryBuilder) HavingStruct(i interface{}) *queryBuilder {
+	b.where.AppendStruct(i)
 	return b
 }
 
@@ -127,17 +127,17 @@ func (b *queryBuilder) OrderBy(names ...string) *queryBuilder {
 	return b
 }
 
-func (b *queryBuilder) PagingWithLimit(offset int, limit int) *queryBuilder {
-	b.paging = New("limit ?,?", offset, limit)
+func (b *queryBuilder) Limit(offset int, limit int) *queryBuilder {
+	b.paging = NewTemplate("limit ?,?", offset, limit)
 	return b
 }
 
 func (b *queryBuilder) Paging(format string, values ...interface{}) *queryBuilder {
-	b.paging = New(format, values...)
+	b.paging = NewTemplate(format, values...)
 	return b
 }
 
-func (b *queryBuilder) PagingWithTemplate(template Template) *queryBuilder {
+func (b *queryBuilder) PagingTemplate(template Template) *queryBuilder {
 	b.paging = template
 	return b
 }
@@ -196,8 +196,8 @@ func (b *queryBuilder) Query(querier Querier) (*Rows, error) {
 	return b.Build().Query(querier)
 }
 
-func (b *queryBuilder) QueryWithContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
-	return b.Build().QueryWithContext(ctx, querier)
+func (b *queryBuilder) QueryContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
+	return b.Build().QueryContext(ctx, querier)
 }
 
 const (
@@ -215,7 +215,7 @@ func Insert(table string, pairs map[string]interface{}) *commandBuilder {
 	return b
 }
 
-func InsertWithStruct(i interface{}, ignoreColumns ...string) *commandBuilder {
+func InsertStruct(i interface{}, ignoreColumns ...string) *commandBuilder {
 	return Insert(TableName(i), structToColumnValueMap(reflect.ValueOf(i), true, ignoreColumns...))
 }
 
@@ -228,7 +228,7 @@ func Update(table string, pairs map[string]interface{}) *commandBuilder {
 	return b
 }
 
-func UpdateWithStruct(i interface{}) *commandBuilder {
+func UpdateStruct(i interface{}) *commandBuilder {
 	return Update(TableName(i), structToColumnValueMap(reflect.ValueOf(i), false))
 }
 
@@ -243,7 +243,7 @@ type commandBuilder struct {
 	table   string
 	names   []string
 	values  []interface{}
-	where   conditionBuilder
+	where   Condition
 }
 
 func (b *commandBuilder) Dialect(name string) *commandBuilder {
@@ -256,23 +256,23 @@ func (b *commandBuilder) Table(name string) *commandBuilder {
 	return b
 }
 
-func (b *commandBuilder) Where(template string, values ...interface{}) *commandBuilder {
-	b.where.Append(Template{Format: template, Values: values})
+func (b *commandBuilder) Where(format string, values ...interface{}) *commandBuilder {
+	b.where = b.where.AppendTemplate(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *commandBuilder) WhereWithTemplate(templates ...Template) *commandBuilder {
-	b.where.Append(templates...)
+func (b *commandBuilder) WhereTemplate(templates ...Template) *commandBuilder {
+	b.where = b.where.AppendTemplate(templates...)
 	return b
 }
 
-func (b *commandBuilder) WhereWithMap(m map[string]interface{}) *commandBuilder {
-	b.where.WithMap(m)
+func (b *commandBuilder) WhereMap(m map[string]interface{}) *commandBuilder {
+	b.where = b.where.AppendMap(m)
 	return b
 }
 
-func (b *commandBuilder) WhereWithStruct(i interface{}) *commandBuilder {
-	b.where.WithStruct(i)
+func (b *commandBuilder) WhereStruct(i interface{}) *commandBuilder {
+	b.where = b.where.AppendStruct(i)
 	return b
 }
 
@@ -317,59 +317,8 @@ func (b *commandBuilder) Execute(exectutor Executor) (*Result, error) {
 	return b.Build().Execute(exectutor)
 }
 
-func (b *commandBuilder) ExecuteWithContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
-	return b.Build().ExecuteWitchContext(ctx, exectutor)
-}
-
-type conditionBuilder []Template
-
-func (b *conditionBuilder) Append(templates ...Template) *conditionBuilder {
-	for _, t := range templates {
-		if !t.IsEmpty() {
-			*b = append(*b, t)
-		}
-	}
-	return b
-}
-
-func (b *conditionBuilder) WithMap(m map[string]interface{}) *conditionBuilder {
-	var (
-		formats []string
-		values  []interface{}
-	)
-	for k, v := range m {
-		formats = append(formats, fmt.Sprintf("%s = ?", k))
-		values = append(values, v)
-	}
-	b.Append(New(strings.Join(formats, " and "), values...))
-	return b
-}
-
-func (b *conditionBuilder) WithStruct(i interface{}) *conditionBuilder {
-	m := structToColumnValueMap(reflect.ValueOf(i), false)
-	var (
-		formats []string
-		values  []interface{}
-	)
-	for k, v := range m {
-		formats = append(formats, fmt.Sprintf("%s = ?", k))
-		values = append(values, v)
-	}
-	b.Append(New(strings.Join(formats, " and "), values...))
-	return b
-}
-
-func (b *conditionBuilder) Build() Template {
-	if len(*b) == 0 {
-		return Empty()
-	}
-	result := Empty()
-	for _, condition := range *b {
-		if strings.TrimSpace(condition.Format) != "" {
-			result = result.Join(condition.WrapBracket(), " and ")
-		}
-	}
-	return result
+func (b *commandBuilder) ExecuteContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
+	return b.Build().ExecuteContext(ctx, exectutor)
 }
 
 const (
@@ -381,67 +330,80 @@ const (
 	actionDropTableIfExists                = "drop_table_if_exists"
 )
 
+type Table struct {
+	Table   string
+	Columns []Column
+}
+
 type Column struct {
 	Name   string
 	Type   string
 	Suffix string
 }
 
-func CreateTable(table string, columns []Column) *TableBuilder {
-	return &TableBuilder{
+func CreateTable(table string, columns []Column) *tableBuilder {
+	return &tableBuilder{
 		action:  actionCreateTable,
 		table:   table,
 		columns: columns,
 	}
 }
 
-func CreateTableWithStruct(i interface{}) *TableBuilder {
-	return &TableBuilder{
+func BatchCreateTable(tables []Table) Template {
+	var result Template
+	for _, table := range tables {
+		result.Join(CreateTable(table.Table, table.Columns).Build(), "\n")
+	}
+	return result
+}
+
+func CreateTableStruct(i interface{}) *tableBuilder {
+	return &tableBuilder{
 		action:     actionCreateTableWithStruct,
 		table:      TableName(i),
 		structType: reflect.TypeOf(i),
 	}
 }
 
-func CreateTableWithStructIfNotExists(i interface{}) *TableBuilder {
-	return &TableBuilder{
-		action:     actionCreateTableWithStructIfNotExists,
-		table:      TableName(i),
-		structType: reflect.TypeOf(i),
-	}
-}
-
-func CreateTableIfNotExists(table string, columns []Column) *TableBuilder {
-	return &TableBuilder{
+func CreateTableIfNotExists(table string, columns []Column) *tableBuilder {
+	return &tableBuilder{
 		action:  actionCreateTableIfNotExists,
 		table:   table,
 		columns: columns,
 	}
 }
 
-func DropTable(table string) *TableBuilder {
-	return &TableBuilder{
+func CreateTableIfNotExistsStruct(i interface{}) *tableBuilder {
+	return &tableBuilder{
+		action:     actionCreateTableWithStructIfNotExists,
+		table:      TableName(i),
+		structType: reflect.TypeOf(i),
+	}
+}
+
+func DropTable(table string) *tableBuilder {
+	return &tableBuilder{
 		action: actionDropTable,
 		table:  table,
 	}
 }
 
-func DropTableIfExists(table string) *TableBuilder {
-	return &TableBuilder{
+func DropTableIfExists(table string) *tableBuilder {
+	return &tableBuilder{
 		action: actionDropTableIfExists,
 		table:  table,
 	}
 }
 
-func DropTableWithStruct(i interface{}) *TableBuilder {
-	return &TableBuilder{
+func DropTableStruct(i interface{}) *tableBuilder {
+	return &tableBuilder{
 		action: actionDropTable,
 		table:  TableName(i),
 	}
 }
 
-func DropTableWithStructIfExists(i interface{}) *TableBuilder {
-	return &TableBuilder{
+func DropTableIfExistsStruct(i interface{}) *tableBuilder {
+	return &tableBuilder{
 		action: actionDropTableIfExists,
 		table:  TableName(i),
 	}
@@ -453,10 +415,10 @@ func (c Column) Build() Template {
 	if suffix != "" {
 		template += " " + suffix
 	}
-	return New(template)
+	return NewTemplate(template)
 }
 
-type TableBuilder struct {
+type tableBuilder struct {
 	action     string
 	dialect    string
 	table      string
@@ -466,27 +428,27 @@ type TableBuilder struct {
 	appends    []Template
 }
 
-func (b *TableBuilder) Dialect(name string) *TableBuilder {
+func (b *tableBuilder) Dialect(name string) *tableBuilder {
 	b.dialect = name
 	return b
 }
 
-func (b *TableBuilder) Table(name string) *TableBuilder {
+func (b *tableBuilder) Table(name string) *tableBuilder {
 	b.table = name
 	return b
 }
 
-func (b *TableBuilder) Prepend(template string, values ...interface{}) *TableBuilder {
-	b.prepends = append(b.prepends, New(template, values...))
+func (b *tableBuilder) Prepend(template string, values ...interface{}) *tableBuilder {
+	b.prepends = append(b.prepends, NewTemplate(template, values...))
 	return b
 }
 
-func (b *TableBuilder) Append(template string, values ...interface{}) *TableBuilder {
-	b.appends = append(b.appends, New(template, values...))
+func (b *tableBuilder) Append(template string, values ...interface{}) *tableBuilder {
+	b.appends = append(b.appends, NewTemplate(template, values...))
 	return b
 }
 
-func (b *TableBuilder) Build() Template {
+func (b *tableBuilder) Build() Template {
 	result := Template{}
 	buffer := strings.Builder{}
 
@@ -543,10 +505,10 @@ func (b *TableBuilder) Build() Template {
 	return result
 }
 
-func (b *TableBuilder) Execute(executor Executor) (*Result, error) {
+func (b *tableBuilder) Execute(executor Executor) (*Result, error) {
 	return b.Build().Execute(executor)
 }
 
-func (b *TableBuilder) ExecuteWitchContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
-	return b.Build().ExecuteWitchContext(ctx, executor)
+func (b *tableBuilder) ExecuteContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
+	return b.Build().ExecuteContext(ctx, executor)
 }

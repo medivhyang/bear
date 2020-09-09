@@ -10,64 +10,60 @@ func New(format string, values ...interface{}) bear.Template {
 	return bear.Template{Format: format, Values: values}
 }
 
-func Empty() bear.Template {
-	return bear.Template{}
-}
-
 func Value(values ...interface{}) bear.Template {
-	return bear.New("", values...)
+	return bear.NewTemplate("", values...)
 }
 
-func Equal(name string, value interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s = ?", name), value)
+func EQ(name string, value interface{}) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s = ?", name), value)
 }
 
-func EqualTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s = (%s)", name, template.Format), template.Values...)
+func EQTemplate(name string, template bear.Template) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s = (%s)", name, template.Format), template.Values...)
 }
 
-func NotEqual(name string, value interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s != ?", name), value)
+func NE(name string, value interface{}) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s != ?", name), value)
 }
 
-func NotEqualTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s != (%s)", name, template.Format), template.Values...)
+func NETemplate(name string, template bear.Template) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s != (%s)", name, template.Format), template.Values...)
 }
 
-func LessThan(name string, value interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s < ?", name), value)
+func LT(name string, value interface{}) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s < ?", name), value)
 }
 
-func LessThanTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s < (%s)", name, template.Format), template.Values...)
+func LTTemplate(name string, template bear.Template) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s < (%s)", name, template.Format), template.Values...)
 }
 
-func LessEqual(name string, value interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s <= ?", name), value)
+func LE(name string, value interface{}) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s <= ?", name), value)
 }
 
-func LessEqualTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s <= (%s)", name, template.Format), template.Values...)
+func LETemplate(name string, template bear.Template) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s <= (%s)", name, template.Format), template.Values...)
 }
 
-func GreaterThan(name string, value interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s > ?", name), value)
+func GT(name string, value interface{}) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s > ?", name), value)
 }
 
-func GreaterThanTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s > (%s)", name, template.Format), template.Values...)
+func GTTemplate(name string, template bear.Template) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s > (%s)", name, template.Format), template.Values...)
 }
 
-func GreaterEqual(name string, value interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s >= ?", name), value)
+func GE(name string, value interface{}) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s >= ?", name), value)
 }
 
-func GreaterEqualTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s >= (%s)", name, template.Format), template.Values...)
+func GETemplate(name string, template bear.Template) bear.Template {
+	return bear.NewTemplate(fmt.Sprintf("%s >= (%s)", name, template.Format), template.Values...)
 }
 
 func Between(name string, v1 interface{}, v2 interface{}) bear.Template {
-	return bear.New(fmt.Sprintf("%s between ? and ?", name), v1, v2)
+	return bear.NewTemplate(fmt.Sprintf("%s between ? and ?", name), v1, v2)
 }
 
 func BetweenTemplate(name string, v1 bear.Template, v2 bear.Template) bear.Template {
@@ -88,24 +84,24 @@ func BetweenTemplate(name string, v1 bear.Template, v2 bear.Template) bear.Templ
 }
 
 func In(name string, values ...interface{}) bear.Template {
-	if len(values) == 0 {
-		return Empty()
+	if name == "" || len(values) == 0 {
+		return bear.Template{}
 	}
 	var placeholders []string
 	for i := 0; i < len(values); i++ {
 		placeholders = append(placeholders, "?")
 	}
-	return bear.New(fmt.Sprintf("%s in (%s)", name, strings.Join(placeholders, ",")), values...)
+	return bear.NewTemplate(fmt.Sprintf("%s in (%s)", name, strings.Join(placeholders, ",")), values...)
 }
 
 func InTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s in (%s)", name, template.Format), template.Values...)
+	return bear.NewTemplate(fmt.Sprintf("%s in (%s)", name, template.Format), template.Values...)
 }
 
 func Like(name string, value string) bear.Template {
-	return bear.New(fmt.Sprintf("%s like ?", name), value)
+	return bear.NewTemplate(fmt.Sprintf("%s like ?", name), value)
 }
 
 func LikeTemplate(name string, template bear.Template) bear.Template {
-	return bear.New(fmt.Sprintf("%s like (%s)", name, template.Format), template.Values...)
+	return bear.NewTemplate(fmt.Sprintf("%s like (%s)", name, template.Format), template.Values...)
 }

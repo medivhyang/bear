@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	bear.RegisterDialect("sqlite3", &dialect{})
+	bear.RegisterDialect("sqlite3", &dialect{}, true)
 }
 
 type dialect struct{}

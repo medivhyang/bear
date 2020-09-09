@@ -6,7 +6,7 @@ import (
 )
 
 func ExampleWhereWithTemplate() {
-	t := bear.Select("user", "id", "name", "age").WhereWithTemplate(GreaterEqual("age", 20)).Build()
+	t := bear.Select("user", "id", "name", "age").WhereTemplate(GE("age", 20)).Build()
 	fmt.Println(t.Format)
 	fmt.Println(t.Values)
 
@@ -18,7 +18,7 @@ func ExampleWhereWithTemplate() {
 func ExampleHavingWithTemplate() {
 	t := bear.Select("user", "role", "count(*) as count").
 		GroupBy("role").
-		HavingWithTemplate(GreaterEqual("age", 20)).
+		HavingTemplate(GE("age", 20)).
 		Build()
 	fmt.Println(t.Format)
 	fmt.Println(t.Values)

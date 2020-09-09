@@ -6,14 +6,14 @@ import (
 	"sync"
 )
 
-type Tabler interface {
-	Table() string
+type TableNamer interface {
+	TableName() string
 }
 
 const (
 	tagKey             = "bear"
 	tagNestedKeyIgnore = "-"
-	tagNestedKeyName   = "name"
+	tagNestedKeyName   = "column"
 	tagNestedKeyType   = "type"
 	tagNestedKeySuffix = "suffix"
 )
@@ -237,8 +237,8 @@ func isZeroValue(value reflect.Value) bool {
 }
 
 func TableName(i interface{}) string {
-	if tabler, ok := i.(Tabler); ok {
-		return tabler.Table()
+	if tableNamer, ok := i.(TableNamer); ok {
+		return tableNamer.TableName()
 	}
 	typo := reflect.TypeOf(i)
 	for typo.Kind() == reflect.Ptr {
