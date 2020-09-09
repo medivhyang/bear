@@ -23,16 +23,16 @@ type commandBuilder struct {
 	where   Condition
 }
 
-func Insert(table string, pairs map[string]interface{}) *commandBuilder {
+func Insert(table string, row map[string]interface{}) *commandBuilder {
 	b := &commandBuilder{table: table, action: actionInsert}
-	for k, v := range pairs {
+	for k, v := range row {
 		b.columns = append(b.columns, NewTemplate(k, v))
 	}
 	return b
 }
 
-func InsertStruct(aStruct interface{}, ignoreColumns ...string) *commandBuilder {
-	return Insert(TableName(aStruct), structToColumnValueMap(reflect.ValueOf(aStruct), true, ignoreColumns...))
+func InsertStruct(aStruct interface{}) *commandBuilder {
+	return Insert(TableName(aStruct), structToColumnValueMap(reflect.ValueOf(aStruct), true))
 }
 
 func Update(table string, pairs map[string]interface{}) *commandBuilder {
