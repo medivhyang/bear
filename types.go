@@ -25,7 +25,7 @@ type structField struct {
 	tag   map[string]string
 }
 
-func (field structField) column(driverName string) (Column, bool) {
+func (field structField) column(dialectName string) (Column, bool) {
 	result := Column{}
 	name := field.columnName()
 	if name == "" {
@@ -35,7 +35,7 @@ func (field structField) column(driverName string) (Column, bool) {
 	if typo := field.tag[tagNestedKeyType]; typo != "" {
 		result.Type = typo
 	} else {
-		if d := dialect(driverName); d != nil {
+		if d := getDialect(dialectName); d != nil {
 			result.Type = d.TypeMapping(field.typo)
 		}
 	}

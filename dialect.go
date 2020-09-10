@@ -22,7 +22,7 @@ func RegisterDialect(name string, dialect Dialect, isDefault ...bool) {
 }
 
 func SetDefaultDialect(name string) bool {
-	d := dialect(name)
+	d := getDialect(name)
 	if d != nil {
 		dialects.Store("", d)
 		return true
@@ -30,7 +30,7 @@ func SetDefaultDialect(name string) bool {
 	return false
 }
 
-func dialect(name string) Dialect {
+func getDialect(name string) Dialect {
 	v, ok := dialects.Load(name)
 	if !ok {
 		return nil
