@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var ErrEmptyTemplate = errors.New("bear: empty template")
+
 type (
 	Executor interface {
 		Exec(query string, args ...interface{}) (sql.Result, error)
@@ -62,8 +64,10 @@ func (t Template) Join(other Template, sep ...string) Template {
 		finalSep = sep[0]
 	}
 	var newFormat string
-	if t.Format == "" {
+	if t.IsEmptyOrWhitespace() {
 		newFormat = other.Format
+	} else if other.IsEmptyOrWhitespace() {
+		newFormat = t.Format
 	} else {
 		newFormat = t.Format + finalSep + other.Format
 	}
@@ -72,28 +76,16 @@ func (t Template) Join(other Template, sep ...string) Template {
 }
 
 func (t Template) And(other Template) Template {
-	if other.Format == "" {
-		return t
-	}
-	if t.Format == "" {
-		return other
-	}
 	return t.Join(other, " and ")
 }
 
 func (t Template) Or(other Template) Template {
-	if other.Format == "" {
-		return t
-	}
-	if t.Format == "" {
-		return other
-	}
 	return t.Join(other, " or ")
 }
 
 func (t Template) Query(querier Querier) (*Rows, error) {
-	if t.IsEmpty() {
-		return nil, errors.New("bear: empty template")
+	if t.IsEmptyOrWhitespace() {
+		return nil, ErrEmptyTemplate
 	}
 	debugf("query: %s\n", t)
 	rows, err := querier.Query(t.Format, t.Values...)
@@ -104,8 +96,8 @@ func (t Template) Query(querier Querier) (*Rows, error) {
 }
 
 func (t Template) QueryContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
-	if t.IsEmpty() {
-		return nil, errors.New("bear: empty template")
+	if t.IsEmptyOrWhitespace() {
+		return nil, ErrEmptyTemplate
 	}
 	debugf("query: %s\n", t)
 	rows, err := querier.QueryContext(ctx, t.Format, t.Values...)
@@ -116,8 +108,8 @@ func (t Template) QueryContext(ctx context.Context, querier WithContextQuerier) 
 }
 
 func (t Template) Execute(executor Executor) (*Result, error) {
-	if t.IsEmpty() {
-		return nil, errors.New("bear: empty template")
+	if t.IsEmptyOrWhitespace() {
+		return nil, ErrEmptyTemplate
 	}
 	debugf("exec: %s\n", t)
 	result, err := executor.Exec(t.Format, t.Values...)
@@ -128,8 +120,8 @@ func (t Template) Execute(executor Executor) (*Result, error) {
 }
 
 func (t Template) ExecuteContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
-	if t.IsEmpty() {
-		return nil, errors.New("bear: empty template")
+	if t.IsEmptyOrWhitespace() {
+		return nil, ErrEmptyTemplate
 	}
 	debugf("exec: %s\n", t)
 	result, err := executor.ExecContext(ctx, t.Format, t.Values...)

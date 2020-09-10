@@ -144,7 +144,7 @@ func (b *queryBuilder) Build() Template {
 	}
 
 	where := b.where.Build()
-	if !where.IsEmpty() {
+	if !where.IsEmptyOrWhitespace() {
 		result = result.Join(where, " where ")
 	}
 
@@ -153,7 +153,7 @@ func (b *queryBuilder) Build() Template {
 	}
 
 	having := b.having.Build()
-	if !having.IsEmpty() {
+	if !having.IsEmptyOrWhitespace() {
 		result = result.Join(having, " having ")
 	}
 
@@ -161,7 +161,7 @@ func (b *queryBuilder) Build() Template {
 		result = result.Append(fmt.Sprintf(" order by %s", strings.Join(b.orderBy, ",")))
 	}
 
-	if !b.paging.IsEmpty() {
+	if !b.paging.IsEmptyOrWhitespace() {
 		result = result.Join(b.paging, " ")
 	}
 
