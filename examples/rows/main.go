@@ -6,43 +6,38 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
-
 	"github.com/medivhyang/bear"
 	_ "github.com/medivhyang/bear/dialect/sqlite3"
 )
 
 type user struct {
-	ID      int
-	Name    string
-	Age     int
-	Role    string
-	Created int64
+	ID      int    `bear:"suffix:primary key"`
+	Name    string `bear:"suffix:not null"`
+	Age     int    `bear:"suffix:not null"`
+	Role    string `bear:"suffix:not null"`
+	Created int64  `bear:"column:create_time,suffix:not null"`
 }
 
 var db *sql.DB
 
 func init() {
-	//bear.EnableDebug(false)
+	bear.EnableDebug(false)
 
 	var err error
 	db, err = openSqlite3("data.db")
 	if err != nil {
 		panic(err)
 	}
-
 	if _, err := bear.DropTableStruct(user{}).
 		OnExists().
 		Execute(db); err != nil {
 		panic(err)
 	}
-
 	if _, err := bear.CreateTableStruct(user{}).
 		OnNotExists().
 		Execute(db); err != nil {
 		panic(err)
 	}
-
 	data := []user{
 		{ID: 1, Name: "Tom", Age: 20, Role: "student", Created: time.Now().Unix()},
 		{ID: 2, Name: "Bob", Age: 21, Role: "student", Created: time.Now().Unix()},

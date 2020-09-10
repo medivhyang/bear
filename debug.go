@@ -1,7 +1,6 @@
 package bear
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -9,11 +8,7 @@ import (
 )
 
 var (
-	debug = true
-
-	errPrefix = "bear: "
-
-	logPrefix   = "bear: "
+	debug       = true
 	logInstance = log.New(os.Stdout, "", log.LstdFlags)
 )
 
@@ -27,10 +22,6 @@ func SetLogOutput(w io.Writer) {
 
 func debugf(format string, args ...interface{}) {
 	if debug {
-		logInstance.Print(logPrefix + fmt.Sprintf(format, args...))
+		logInstance.Print("bear: " + fmt.Sprintf(format, args...))
 	}
-}
-
-func errorf(format string, args ...interface{}) error {
-	return errors.New(errPrefix + fmt.Sprintf(format, args...))
 }
