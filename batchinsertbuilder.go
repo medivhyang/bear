@@ -104,7 +104,7 @@ func (b *batchInsertBuilder) Build() Template {
 	format := fmt.Sprintf("insert into %s(%s) values%s",
 		b.table,
 		strings.Join(names, ","),
-		strings.Join(holderMatrix, ""),
+		strings.Join(holderMatrix, ","),
 	)
 	return NewTemplate(format, values...)
 }

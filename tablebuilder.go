@@ -8,10 +8,8 @@ import (
 )
 
 const (
-	actionCreateTable            = "create_table"
-	actionCreateTableIfNotExists = "create_table_if_not_exists"
-	actionDropTable              = "drop_table"
-	actionDropTableIfExists      = "drop_table_if_exists"
+	actionCreateTable = "create_table"
+	actionDropTable   = "drop_table"
 )
 
 type tableBuilder struct {
@@ -28,6 +26,8 @@ type tableBuilder struct {
 	newline       bool
 	indent        string
 	prefix        string
+	onExists      bool
+	onNotExists   bool
 }
 
 func CreateTable(table string, columns []Column) *tableBuilder {
@@ -38,35 +38,15 @@ func CreateTable(table string, columns []Column) *tableBuilder {
 	}
 }
 
-func CreateTableWithStruct(i interface{}, dialect ...string) *tableBuilder {
+func CreateTableStruct(aStruct interface{}, dialect ...string) *tableBuilder {
 	finalDialect := ""
 	if len(dialect) > 0 {
 		finalDialect = dialect[0]
 	}
 	return &tableBuilder{
 		action:  actionCreateTable,
-		table:   TableName(i),
-		columns: structFields(reflect.TypeOf(i)).columns(finalDialect),
-	}
-}
-
-func CreateTableIfNotExists(table string, columns []Column) *tableBuilder {
-	return &tableBuilder{
-		action:  actionCreateTableIfNotExists,
-		table:   table,
-		columns: columns,
-	}
-}
-
-func CreateTableIfNotExistsWithStruct(i interface{}, dialect ...string) *tableBuilder {
-	finalDialect := ""
-	if len(dialect) > 0 {
-		finalDialect = dialect[0]
-	}
-	return &tableBuilder{
-		action:  actionCreateTableIfNotExists,
-		table:   TableName(i),
-		columns: structFields(reflect.TypeOf(i)).columns(finalDialect),
+		table:   TableName(aStruct),
+		columns: structFields(reflect.TypeOf(aStruct)).columns(finalDialect),
 	}
 }
 
@@ -78,14 +58,6 @@ func BatchCreateTable(tables []Table) Template {
 	return result
 }
 
-func BatchCreateTableIfNotExists(tables []Table) Template {
-	var result Template
-	for _, table := range tables {
-		result = result.Join(CreateTableIfNotExists(table.Name, table.Columns).Build(), "\n")
-	}
-	return result
-}
-
 func DropTable(table string) *tableBuilder {
 	return &tableBuilder{
 		action: actionDropTable,
@@ -93,24 +65,10 @@ func DropTable(table string) *tableBuilder {
 	}
 }
 
-func DropTableIfExists(table string) *tableBuilder {
-	return &tableBuilder{
-		action: actionDropTableIfExists,
-		table:  table,
-	}
-}
-
-func DropTableWithStruct(aStruct interface{}) *tableBuilder {
+func DropTableStruct(aStruct interface{}) *tableBuilder {
 	return &tableBuilder{
 		action: actionDropTable,
 		table:  TableName(aStruct),
-	}
-}
-
-func DropTableIfExistsWithStruct(i interface{}) *tableBuilder {
-	return &tableBuilder{
-		action: actionDropTableIfExists,
-		table:  TableName(i),
 	}
 }
 
@@ -121,6 +79,16 @@ func (b *tableBuilder) Dialect(name string) *tableBuilder {
 
 func (b *tableBuilder) Table(name string) *tableBuilder {
 	b.table = name
+	return b
+}
+
+func (b *tableBuilder) OnExists() *tableBuilder {
+	b.onExists = true
+	return b
+}
+
+func (b *tableBuilder) OnNotExists() *tableBuilder {
+	b.onNotExists = true
 	return b
 }
 
@@ -184,7 +152,7 @@ func (b *tableBuilder) Build() Template {
 	}
 
 	switch b.action {
-	case actionCreateTable, actionCreateTableIfNotExists:
+	case actionCreateTable:
 		var columns = b.finalColumns()
 		if len(columns) == 0 {
 			break
@@ -194,11 +162,10 @@ func (b *tableBuilder) Build() Template {
 				buffer.WriteString("\n")
 			}
 		}
-		switch b.action {
-		case actionCreateTable:
-			buffer.WriteString(fmt.Sprintf("create table %s (", b.table))
-		case actionCreateTableIfNotExists:
+		if b.onNotExists {
 			buffer.WriteString(fmt.Sprintf("create table if not exists %s (", b.table))
+		} else {
+			buffer.WriteString(fmt.Sprintf("create table %s (", b.table))
 		}
 		if b.newline {
 			buffer.WriteString("\n")
@@ -246,9 +213,11 @@ func (b *tableBuilder) Build() Template {
 			buffer.WriteString("\n")
 		}
 	case actionDropTable:
-		buffer.WriteString(fmt.Sprintf("drop table %s;", b.table))
-	case actionDropTableIfExists:
-		buffer.WriteString(fmt.Sprintf("drop table if exists %s;", b.table))
+		if b.onExists {
+			buffer.WriteString(fmt.Sprintf("drop table if exists %s;", b.table))
+		} else {
+			buffer.WriteString(fmt.Sprintf("drop table %s;", b.table))
+		}
 	}
 	for _, item := range b.appends {
 		buffer.WriteString(item.Format)
