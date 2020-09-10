@@ -3,6 +3,8 @@ package bear
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -11,6 +13,7 @@ type batchInsertBuilder struct {
 	rows    [][]Template
 	include map[string]bool
 	exclude map[string]bool
+	err     error
 }
 
 func BatchInsert(table string, rows []map[string]interface{}) *batchInsertBuilder {
@@ -22,6 +25,7 @@ func BatchInsert(table string, rows []map[string]interface{}) *batchInsertBuilde
 	for k := range rows[0] {
 		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 	for _, row := range rows {
 		var columns []Template
 		for _, k := range keys {
@@ -32,6 +36,26 @@ func BatchInsert(table string, rows []map[string]interface{}) *batchInsertBuilde
 		}
 	}
 	return result
+}
+
+func BatchInsertStruct(structs interface{}) *batchInsertBuilder {
+	v := reflect.ValueOf(structs)
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Slice {
+		panic("batch insert struct: require struct slice")
+	}
+	if v.Len() == 0 {
+		return &batchInsertBuilder{}
+	}
+	tableName := TableName(v.Index(0).Interface())
+	var rows []map[string]interface{}
+	for i := 0; i < v.Len(); i++ {
+		row := structToColumnValueMap(v.Index(i), true)
+		rows = append(rows, row)
+	}
+	return BatchInsert(tableName, rows)
 }
 
 func (b *batchInsertBuilder) Include(names ...string) *batchInsertBuilder {
