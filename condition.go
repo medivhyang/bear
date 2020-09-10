@@ -25,19 +25,13 @@ func (c Condition) Append(format string, values ...interface{}) Condition {
 	return c.AppendTemplate(NewTemplate(format, values...))
 }
 
-func (c Condition) AppendTemplate(templates ...Template) Condition {
-	clone := c.Clone()
-	for _, t := range templates {
-		if !t.IsEmpty() {
-			clone = append(clone, t)
-		}
-	}
-	return clone
+func (c Condition) AppendStruct(i interface{}) Condition {
+	m := structToColumnValueMap(reflect.ValueOf(i), false)
+	return c.AppendMap(m)
 }
 
 func (c Condition) AppendMap(m map[string]interface{}) Condition {
 	var (
-		clone   = c.Clone()
 		formats []string
 		values  []interface{}
 	)
@@ -45,13 +39,17 @@ func (c Condition) AppendMap(m map[string]interface{}) Condition {
 		formats = append(formats, fmt.Sprintf("%s = ?", k))
 		values = append(values, v)
 	}
-	clone.AppendTemplate(NewTemplate(strings.Join(formats, " and "), values...))
-	return clone
+	return c.AppendTemplate(NewTemplate(strings.Join(formats, " and "), values...))
 }
 
-func (c Condition) AppendStruct(i interface{}) Condition {
-	m := structToColumnValueMap(reflect.ValueOf(i), false)
-	return c.AppendMap(m)
+func (c Condition) AppendTemplate(templates ...Template) Condition {
+	clone := c.Clone()
+	for _, t := range templates {
+		if !t.IsEmptyOrWhitespace() {
+			clone = append(clone, t)
+		}
+	}
+	return clone
 }
 
 func (c Condition) Build() Template {
