@@ -3,105 +3,131 @@ package expr
 import (
 	"fmt"
 	"github.com/medivhyang/bear"
+	"reflect"
 	"strings"
 )
 
 func New(format string, values ...interface{}) bear.Template {
-	return bear.Template{Format: format, Values: values}
+	return bear.NewTemplate(format, values...)
 }
 
 func Value(values ...interface{}) bear.Template {
 	return bear.NewTemplate("", values...)
 }
 
-func EQ(name string, value interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s = ?", name), value)
+func Equal(name string, value interface{}) bear.Template {
+	return binary("=", name, value)
 }
 
-func EQTemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s = (%s)", name, template.Format), template.Values...)
+func NotEqual(name string, value interface{}) bear.Template {
+	return binary("!=", name, value)
 }
 
-func NE(name string, value interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s != ?", name), value)
+func LessThan(name string, value interface{}) bear.Template {
+	return binary("<", name, value)
 }
 
-func NETemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s != (%s)", name, template.Format), template.Values...)
+func LessEqual(name string, value interface{}) bear.Template {
+	return binary("<=", name, value)
 }
 
-func LT(name string, value interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s < ?", name), value)
+func GreaterThan(name string, value interface{}) bear.Template {
+	return binary(">", name, value)
 }
 
-func LTTemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s < (%s)", name, template.Format), template.Values...)
-}
-
-func LE(name string, value interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s <= ?", name), value)
-}
-
-func LETemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s <= (%s)", name, template.Format), template.Values...)
-}
-
-func GT(name string, value interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s > ?", name), value)
-}
-
-func GTTemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s > (%s)", name, template.Format), template.Values...)
-}
-
-func GE(name string, value interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s >= ?", name), value)
-}
-
-func GETemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s >= (%s)", name, template.Format), template.Values...)
-}
-
-func Between(name string, v1 interface{}, v2 interface{}) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s between ? and ?", name), v1, v2)
-}
-
-func BetweenTemplate(name string, v1 bear.Template, v2 bear.Template) bear.Template {
-	result := bear.Template{}
-	result.Values = append(result.Values, v1.Values...)
-	result.Values = append(result.Values, v2.Values...)
-	if len(v1.Format) == 0 {
-		result.Format = fmt.Sprintf("%s between ?", name)
-	} else {
-		result.Format = fmt.Sprintf("%s between (%s)", name, v1.Format)
-	}
-	if len(v2.Format) == 0 {
-		result.Format += fmt.Sprintf(" and ?")
-	} else {
-		result.Format += fmt.Sprintf(" and (%s)", v2.Format)
-	}
-	return result
-}
-
-func In(name string, values ...interface{}) bear.Template {
-	if name == "" || len(values) == 0 {
-		return bear.Template{}
-	}
-	var placeholders []string
-	for i := 0; i < len(values); i++ {
-		placeholders = append(placeholders, "?")
-	}
-	return bear.NewTemplate(fmt.Sprintf("%s in (%s)", name, strings.Join(placeholders, ",")), values...)
-}
-
-func InTemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s in (%s)", name, template.Format), template.Values...)
+func GreaterEqual(name string, value interface{}) bear.Template {
+	return binary(">=", name, value)
 }
 
 func Like(name string, value string) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s like ?", name), value)
+	return binary("like", name, value)
 }
 
-func LikeTemplate(name string, template bear.Template) bear.Template {
-	return bear.NewTemplate(fmt.Sprintf("%s like (%s)", name, template.Format), template.Values...)
+func binary(op string, name string, value interface{}) bear.Template {
+	var (
+		format string
+		values []interface{}
+	)
+	t, ok := value.(bear.Template)
+	if ok {
+		if t.IsEmptyOrWhitespace() {
+			format = fmt.Sprintf("%s %s ?", name, op)
+		} else {
+			format = fmt.Sprintf("%s %s (%s)", name, op, t.Format)
+		}
+		value = append(values, t.Values...)
+	} else {
+		format = fmt.Sprintf("%s %s ?", name, op)
+		values = append(values, value)
+	}
+	return bear.NewTemplate(format, values...)
+}
+
+func In(name string, value interface{}) bear.Template {
+	var (
+		format string
+		values []interface{}
+	)
+	t, ok := value.(bear.Template)
+	if ok {
+		if t.IsEmptyOrWhitespace() {
+			var holders []string
+			for i := 0; i < len(t.Values); i++ {
+				holders = append(holders, "?")
+			}
+			format = fmt.Sprintf("%s in (%s)", name, strings.Join(holders, ","))
+		} else {
+			format = fmt.Sprintf("%s in (%s)", name, t.Format)
+		}
+		values = append(values, t.Values...)
+	} else {
+		reflectValue := reflect.ValueOf(value)
+		for reflectValue.Kind() == reflect.Ptr {
+			reflectValue = reflectValue.Elem()
+		}
+		if reflectValue.Kind() != reflect.Slice {
+			panic("bear: expr in: require slice")
+		}
+		var holders []string
+		for i := 0; i < reflectValue.Len(); i++ {
+			holders = append(holders, "?")
+		}
+		for i := 0; i < reflectValue.Len(); i++ {
+			values = append(values, reflectValue.Index(i).Interface())
+		}
+		format = fmt.Sprintf("%s in (%s)", name, strings.Join(holders, ","))
+	}
+	return bear.NewTemplate(format, values...)
+}
+
+func Between(name string, left interface{}, right interface{}) bear.Template {
+	var (
+		format string
+		values []interface{}
+	)
+	leftTemplate, ok := left.(bear.Template)
+	if ok {
+		if leftTemplate.IsEmptyOrWhitespace() {
+			format = fmt.Sprintf("%s between ?", name)
+		} else {
+			format = fmt.Sprintf("%s between (%s)", name, leftTemplate.Format)
+		}
+		values = append(values, leftTemplate.Values...)
+	} else {
+		format = fmt.Sprintf("%s between ?", name)
+		values = append(values, left)
+	}
+	rightTemplate, ok := right.(bear.Template)
+	if ok {
+		if rightTemplate.IsEmptyOrWhitespace() {
+			format += fmt.Sprintf(" and ?")
+		} else {
+			format += fmt.Sprintf(" and (%s)", rightTemplate.Format)
+		}
+		values = append(values, rightTemplate.Values...)
+	} else {
+		format += fmt.Sprintf(" and ?")
+		values = append(values, right)
+	}
+	return bear.NewTemplate(format, values...)
 }

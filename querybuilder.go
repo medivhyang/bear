@@ -11,6 +11,8 @@ type queryBuilder struct {
 	dialect string
 	table   string
 	columns []Template
+	include map[string]bool
+	exclude map[string]bool
 	joins   []Template
 	where   Condition
 	groupBy []string
@@ -48,6 +50,26 @@ func (b *queryBuilder) Dialect(name string) *queryBuilder {
 
 func (b *queryBuilder) Table(name string) *queryBuilder {
 	b.table = name
+	return b
+}
+
+func (b *queryBuilder) Include(names ...string) *queryBuilder {
+	if b.include == nil {
+		b.include = map[string]bool{}
+	}
+	for _, name := range names {
+		b.include[name] = true
+	}
+	return b
+}
+
+func (b *queryBuilder) Exclude(names ...string) *queryBuilder {
+	if b.exclude == nil {
+		b.exclude = map[string]bool{}
+	}
+	for _, name := range names {
+		b.exclude[name] = true
+	}
 	return b
 }
 
@@ -126,18 +148,33 @@ func (b *queryBuilder) PagingTemplate(template Template) *queryBuilder {
 	return b
 }
 
+func (b *queryBuilder) As(alias string) Template {
+	t := b.Build()
+	if len(alias) == 0 {
+		return t
+	}
+	return t.WrapBracket().Append(fmt.Sprintf(" as %s", alias))
+}
+
 func (b *queryBuilder) Build() Template {
+	columns := b.finalColumns()
+	if len(columns) == 0 {
+		return Template{}
+	}
+
 	result := Template{}
 
 	var formats []string
-	for _, c := range b.columns {
-		formats = append(formats, c.Format)
-		result.Values = append(result.Values, c.Values...)
+	{
+		for _, c := range columns {
+			formats = append(formats, c.Format)
+			result.Values = append(result.Values, c.Values...)
+		}
+		result.Format = fmt.Sprintf("select %s from %s",
+			strings.Join(formats, ","),
+			b.table,
+		)
 	}
-	result.Format = fmt.Sprintf("select %s from %s",
-		strings.Join(formats, ","),
-		b.table,
-	)
 
 	for _, item := range b.joins {
 		result = result.Join(item, " ")
@@ -168,18 +205,34 @@ func (b *queryBuilder) Build() Template {
 	return result
 }
 
-func (b *queryBuilder) As(alias string) Template {
-	t := b.Build()
-	if len(alias) == 0 {
-		return t
-	}
-	return t.WrapBracket().Append(fmt.Sprintf(" as %s", alias))
-}
-
 func (b *queryBuilder) Query(querier Querier) (*Rows, error) {
 	return b.Build().Query(querier)
 }
 
 func (b *queryBuilder) QueryContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
 	return b.Build().QueryContext(ctx, querier)
+}
+
+func (b *queryBuilder) finalColumns() []Template {
+	var includedColumns []Template
+	if len(b.include) > 0 {
+		for _, column := range b.columns {
+			if b.include[column.Format] {
+				includedColumns = append(includedColumns, column)
+			}
+		}
+	} else {
+		includedColumns = b.columns
+	}
+	var excludedColumns []Template
+	if len(b.exclude) > 0 {
+		for _, column := range includedColumns {
+			if !b.exclude[column.Format] {
+				excludedColumns = append(excludedColumns, column)
+			}
+		}
+	} else {
+		excludedColumns = includedColumns
+	}
+	return excludedColumns
 }

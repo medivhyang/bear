@@ -46,10 +46,8 @@ func init() {
 		{ID: 4, Name: "Jason", Age: 33, Role: "teacher", Created: time.Now().Unix()},
 		{ID: 5, Name: "Monica", Age: 34, Role: "teacher", Created: time.Now().Unix()},
 	}
-	for _, item := range data {
-		if _, err := bear.InsertStruct(item).Execute(db); err != nil {
-			panic(err)
-		}
+	if _, err := bear.BatchInsertStruct(data).Execute(db); err != nil {
+		panic(err)
 	}
 }
 
