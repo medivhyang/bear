@@ -94,7 +94,7 @@ func structFields(typo reflect.Type) structFieldSlice {
 	return result
 }
 
-func (fields structFieldSlice) findFieldByIndex(index int) (*structField, bool) {
+func (fields structFieldSlice) findFieldByFieldIndex(index int) (*structField, bool) {
 	for _, field := range fields {
 		if field.index == index {
 			return &field, true
@@ -103,7 +103,7 @@ func (fields structFieldSlice) findFieldByIndex(index int) (*structField, bool) 
 	return nil, false
 }
 
-func (fields structFieldSlice) findFieldByColumn(name string) (*structField, bool) {
+func (fields structFieldSlice) findFieldByColumnName(name string) (*structField, bool) {
 	for _, field := range fields {
 		if _, ok := field.tag[tagNestedKeyIgnore]; ok {
 			continue
@@ -120,8 +120,8 @@ func (fields structFieldSlice) findFieldByColumn(name string) (*structField, boo
 	return nil, false
 }
 
-func (fields structFieldSlice) findIndexByColumn(name string) (int, bool) {
-	field, ok := fields.findFieldByColumn(name)
+func (fields structFieldSlice) findFieldIndexByColumnName(name string) (int, bool) {
+	field, ok := fields.findFieldByColumnName(name)
 	if ok {
 		return field.index, true
 	}
@@ -149,23 +149,13 @@ func (fields structFieldSlice) columnNames() []string {
 	return result
 }
 
-func findStructFieldIndex(typo reflect.Type, name string) (int, bool) {
-	for typo.Kind() == reflect.Ptr {
-		typo = typo.Elem()
-	}
-	if typo.Kind() != reflect.Struct {
-		panic("bear: get struct field name: require struct kind type")
-	}
-	return structFields(typo).findIndexByColumn(name)
-}
-
-func parseTag(t string) map[string]string {
+func parseTag(tag string) map[string]string {
 	result := map[string]string{}
-	t = strings.TrimSpace(t)
-	if t == "" {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
 		return result
 	}
-	items := strings.Split(t, ",")
+	items := strings.Split(tag, ",")
 	for _, item := range items {
 		pair := strings.Split(item, ":")
 		var k, v string
@@ -182,37 +172,27 @@ func parseTag(t string) map[string]string {
 	return result
 }
 
-func structToColumnValueMap(value reflect.Value, includeZeroValue bool, ignoreColumns ...string) map[string]interface{} {
+func GetColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[string]interface{} {
 	for value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
 	if value.Kind() != reflect.Struct {
-		panic("bear: get struct field name: require struct kind type")
+		panic("bear: get column value map from struct: require struct type")
 	}
 	fields := structFields(value.Type())
 	result := map[string]interface{}{}
 	for i := 0; i < value.NumField(); i++ {
-		structField, ok := fields.findFieldByIndex(i)
+		field, ok := fields.findFieldByFieldIndex(i)
 		if !ok {
 			continue
 		}
-		name := structField.columnName()
+		name := field.columnName()
 		if name == "" {
 			continue
 		}
-		ignoreFlag := false
-		for _, column := range ignoreColumns {
-			if column == name {
-				ignoreFlag = true
-				break
-			}
-		}
-		if ignoreFlag {
-			continue
-		}
-		valueField := value.Field(i)
-		if includeZeroValue || !isZeroValue(valueField) {
-			result[name] = valueField.Interface()
+		fieldReflectValue := value.Field(i)
+		if includeZeroValue || !isZeroValue(fieldReflectValue) {
+			result[name] = fieldReflectValue.Interface()
 		}
 	}
 	return result

@@ -32,7 +32,7 @@ func Insert(table string, row map[string]interface{}) *commandBuilder {
 }
 
 func InsertStruct(aStruct interface{}) *commandBuilder {
-	return Insert(TableName(aStruct), structToColumnValueMap(reflect.ValueOf(aStruct), true))
+	return Insert(TableName(aStruct), GetColumnValueMapFromStruct(reflect.ValueOf(aStruct), true))
 }
 
 func Update(table string, pairs map[string]interface{}) *commandBuilder {
@@ -44,7 +44,7 @@ func Update(table string, pairs map[string]interface{}) *commandBuilder {
 }
 
 func UpdateStruct(i interface{}) *commandBuilder {
-	return Update(TableName(i), structToColumnValueMap(reflect.ValueOf(i), false))
+	return Update(TableName(i), GetColumnValueMapFromStruct(reflect.ValueOf(i), false))
 }
 
 func Delete(table string) *commandBuilder {
