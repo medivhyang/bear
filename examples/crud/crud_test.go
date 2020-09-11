@@ -1,18 +1,3 @@
-# Bear
-
-Bear is a go sql builder.
-
-## Why Bear
-
-1. Lightweight, native and efficient.
-2. Support template and condition base construction.
-3. Support crud construction.
-4. Provide dialect interface.
-5. Provide expr tools.
-
-## Quick Start
-
-```go
 package main
 
 import (
@@ -103,6 +88,3 @@ func ExampleDeleteStruct() {
 	// Output:
 	// "delete from user where (id = ?)" <= {1}
 }
-```
-
-> More examples refer to `/examples`

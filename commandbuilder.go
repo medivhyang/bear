@@ -52,6 +52,11 @@ func Delete(table string) *commandBuilder {
 	return b
 }
 
+func DeleteStruct(aStruct interface{}) *commandBuilder {
+	b := &commandBuilder{table: TableName(aStruct), action: actionDelete}
+	return b
+}
+
 func (b *commandBuilder) Dialect(name string) *commandBuilder {
 	b.dialect = name
 	return b

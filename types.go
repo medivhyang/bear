@@ -10,13 +10,38 @@ type TableNamer interface {
 	TableName() string
 }
 
-const (
-	tagKey             = "bear"
-	tagNestedKeyIgnore = "-"
-	tagNestedKeyName   = "column"
-	tagNestedKeyType   = "type"
-	tagNestedKeySuffix = "suffix"
+var (
+	TagKey               = "bear"
+	TagItemSeparator     = ","
+	TagKeyValueSeparator = ":"
+	TagNestedKeyIgnore   = "-"
+
+	TagParseMethod tagParseMethod = TagParseMethodIndex
+
+	TagNestedKeyColumnName = "column"
+	TagNestedKeyTypeName   = "type"
+	TagNestedKeySuffixName = "suffix"
+
+	TagNestedKeyColumnIndex = 0
+	TagNestedKeyTypeIndex   = 1
+	TagNestedKeySuffixIndex = 2
 )
+
+type tagParseMethod string
+
+const (
+	TagParseMethodIndex = "index"
+	TagParseMethodName  = "name"
+)
+
+func (m tagParseMethod) Valid() bool {
+	switch m {
+	case TagParseMethodIndex, TagParseMethodName:
+		return true
+	default:
+		return false
+	}
+}
 
 type structField struct {
 	index int
@@ -32,7 +57,7 @@ func (field structField) column(dialectName string) (Column, bool) {
 		return result, false
 	}
 	result.Name = name
-	if typo := field.tag[tagNestedKeyType]; typo != "" {
+	if typo := field.tag[TagNestedKeyTypeName]; typo != "" {
 		result.Type = typo
 	} else {
 		if d := getDialect(dialectName); d != nil {
@@ -42,17 +67,17 @@ func (field structField) column(dialectName string) (Column, bool) {
 	if result.Type == "" {
 		return result, false
 	}
-	if suffix := field.tag[tagNestedKeySuffix]; suffix != "" {
+	if suffix := field.tag[TagNestedKeySuffixName]; suffix != "" {
 		result.Suffix = suffix
 	}
 	return result, true
 }
 
 func (field structField) columnName() string {
-	if _, ok := field.tag[tagNestedKeyIgnore]; ok {
+	if _, ok := field.tag[TagNestedKeyIgnore]; ok {
 		return ""
 	}
-	if v := field.tag[tagNestedKeyName]; v != "" {
+	if v := field.tag[TagNestedKeyColumnName]; v != "" {
 		return v
 	}
 	return toKebab(field.name)
@@ -79,7 +104,7 @@ func structFields(typo reflect.Type) structFieldSlice {
 	var result []structField
 	for i := 0; i < typo.NumField(); i++ {
 		field := typo.Field(i)
-		tag := parseTag(field.Tag.Get(tagKey))
+		tag := parseTag(field.Tag.Get(TagKey))
 		item := structField{
 			index: i,
 			name:  field.Name,
@@ -105,10 +130,10 @@ func (fields structFieldSlice) findFieldByFieldIndex(index int) (*structField, b
 
 func (fields structFieldSlice) findFieldByColumnName(name string) (*structField, bool) {
 	for _, field := range fields {
-		if _, ok := field.tag[tagNestedKeyIgnore]; ok {
+		if _, ok := field.tag[TagNestedKeyIgnore]; ok {
 			continue
 		}
-		if v, ok := field.tag[tagNestedKeyName]; ok && v == name {
+		if v, ok := field.tag[TagNestedKeyColumnName]; ok && v == name {
 			return &field, true
 		}
 	}
@@ -150,14 +175,25 @@ func (fields structFieldSlice) columnNames() []string {
 }
 
 func parseTag(tag string) map[string]string {
+	switch TagParseMethod {
+	case TagParseMethodIndex:
+		return parseTagByIndex(tag)
+	case TagParseMethodName:
+		return parseTagByName(tag)
+	default:
+		panic("bear: invalid tag parse method")
+	}
+}
+
+func parseTagByName(tag string) map[string]string {
 	result := map[string]string{}
 	tag = strings.TrimSpace(tag)
 	if tag == "" {
 		return result
 	}
-	items := strings.Split(tag, ",")
+	items := strings.Split(tag, TagItemSeparator)
 	for _, item := range items {
-		pair := strings.Split(item, ":")
+		pair := strings.Split(item, TagKeyValueSeparator)
 		var k, v string
 		switch {
 		case len(pair) == 1:
@@ -168,6 +204,25 @@ func parseTag(tag string) map[string]string {
 		if k != "" {
 			result[k] = v
 		}
+	}
+	return result
+}
+
+func parseTagByIndex(tag string) map[string]string {
+	result := map[string]string{}
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return result
+	}
+	items := strings.Split(tag, TagItemSeparator)
+	if TagNestedKeyColumnIndex > 0 && TagNestedKeyColumnIndex < len(items) {
+		result[TagNestedKeyColumnName] = items[TagNestedKeyColumnIndex]
+	}
+	if TagNestedKeyTypeIndex > 0 && TagNestedKeyTypeIndex < len(items) {
+		result[TagNestedKeyTypeName] = items[TagNestedKeyTypeIndex]
+	}
+	if TagNestedKeySuffixIndex > 0 && TagNestedKeySuffixIndex < len(items) {
+		result[TagNestedKeySuffixName] = items[TagNestedKeySuffixIndex]
 	}
 	return result
 }
