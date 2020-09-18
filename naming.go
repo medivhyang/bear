@@ -5,7 +5,7 @@ import (
 	"unicode"
 )
 
-func toKebab(s string) string {
+func toSnake(s string) string {
 	return strings.Join(parseWords(s), "_")
 }
 

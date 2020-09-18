@@ -80,7 +80,7 @@ func (field structField) columnName() string {
 	if v := field.tag[TagNestedKeyColumnName]; v != "" {
 		return v
 	}
-	return toKebab(field.name)
+	return toSnake(field.name)
 }
 
 type structFieldSlice []structField
@@ -138,7 +138,7 @@ func (fields structFieldSlice) findFieldByColumnName(name string) (*structField,
 		}
 	}
 	for _, field := range fields {
-		if toKebab(field.name) == name {
+		if toSnake(field.name) == name {
 			return &field, true
 		}
 	}
@@ -279,5 +279,5 @@ func TableName(i interface{}) string {
 	for typo.Kind() == reflect.Ptr {
 		typo = typo.Elem()
 	}
-	return toKebab(typo.Name())
+	return toSnake(typo.Name())
 }
