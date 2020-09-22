@@ -215,13 +215,14 @@ func parseTagByIndex(tag string) map[string]string {
 		return result
 	}
 	items := strings.Split(tag, TagItemSeparator)
-	if TagNestedKeyColumnIndex > 0 && TagNestedKeyColumnIndex < len(items) {
+	count := len(items)
+	if count > TagNestedKeyColumnIndex {
 		result[TagNestedKeyColumnName] = items[TagNestedKeyColumnIndex]
 	}
-	if TagNestedKeyTypeIndex > 0 && TagNestedKeyTypeIndex < len(items) {
+	if count > TagNestedKeyTypeIndex {
 		result[TagNestedKeyTypeName] = items[TagNestedKeyTypeIndex]
 	}
-	if TagNestedKeySuffixIndex > 0 && TagNestedKeySuffixIndex < len(items) {
+	if count > TagNestedKeySuffixIndex {
 		result[TagNestedKeySuffixName] = items[TagNestedKeySuffixIndex]
 	}
 	return result
