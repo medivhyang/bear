@@ -50,10 +50,6 @@ func (r *Rows) Values(slice interface{}) error {
 
 	elemType := reflectValue.Type().Elem()
 
-	if reflectValue.IsNil() {
-		reflectValue = reflect.MakeSlice(reflectValue.Type(), 0, 0)
-	}
-
 	for r.Raw.Next() {
 		item := reflect.New(elemType)
 		if err := r.Raw.Scan(item.Interface()); err != nil {
