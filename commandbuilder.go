@@ -73,9 +73,14 @@ func (b *commandBuilder) Table(name string) *commandBuilder {
 	return b
 }
 
+func (b *commandBuilder) Set(column string, value interface{}) *commandBuilder {
+	b.columns = append(b.columns, NewTemplate(column, value))
+	return b
+}
+
 func (b *commandBuilder) SetMap(m map[string]interface{}) *commandBuilder {
 	for k, v := range m {
-		b.columns = append(b.columns, NewTemplate(k, v))
+		b.Set(k, v)
 	}
 	return b
 }
