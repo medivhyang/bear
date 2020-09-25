@@ -107,6 +107,54 @@ func (t Template) QueryContext(ctx context.Context, querier WithContextQuerier) 
 	return WrapRows(rows), nil
 }
 
+func (t Template) QueryValue(ctx context.Context, querier WithContextQuerier, value interface{}) error {
+	rows, err := t.QueryContext(ctx, querier)
+	if err != nil {
+		return err
+	}
+	return rows.Value(value)
+}
+
+func (t Template) QueryValues(ctx context.Context, querier WithContextQuerier, values interface{}) error {
+	rows, err := t.QueryContext(ctx, querier)
+	if err != nil {
+		return err
+	}
+	return rows.Values(values)
+}
+
+func (t Template) QueryMap(ctx context.Context, querier WithContextQuerier) (map[string]interface{}, error) {
+	rows, err := t.QueryContext(ctx, querier)
+	if err != nil {
+		return nil, err
+	}
+	return rows.Map()
+}
+
+func (t Template) QueryMapSlice(ctx context.Context, querier WithContextQuerier) ([]map[string]interface{}, error) {
+	rows, err := t.QueryContext(ctx, querier)
+	if err != nil {
+		return nil, err
+	}
+	return rows.MapSlice()
+}
+
+func (t Template) QueryStruct(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
+	rows, err := t.QueryContext(ctx, querier)
+	if err != nil {
+		return err
+	}
+	return rows.Struct(structPtr)
+}
+
+func (t Template) QueryStructSlice(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
+	rows, err := t.QueryContext(ctx, querier)
+	if err != nil {
+		return err
+	}
+	return rows.StructSlice(structPtr)
+}
+
 func (t Template) Execute(executor Executor) (*Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
