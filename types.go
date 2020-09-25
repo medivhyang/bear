@@ -228,7 +228,7 @@ func parseTagByIndex(tag string) map[string]string {
 	return result
 }
 
-func GetColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[string]interface{} {
+func getColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[string]interface{} {
 	for value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}

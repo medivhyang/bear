@@ -36,12 +36,12 @@ func SelectTemplate(table string, columns ...Template) *queryBuilder {
 	return &b
 }
 
-func SelectStruct(i interface{}) *queryBuilder {
-	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...)
+func SelectStruct(aStruct interface{}) *queryBuilder {
+	return Select(TableName(aStruct)).IncludeStruct(aStruct)
 }
 
-func SelectWhere(i interface{}) *queryBuilder {
-	return Select(TableName(i), structFields(reflect.TypeOf(i)).columnNames()...).WhereStruct(i)
+func SelectWhere(aStruct interface{}) *queryBuilder {
+	return Select(TableName(aStruct)).IncludeStruct(aStruct).WhereStruct(aStruct)
 }
 
 func (b *queryBuilder) Dialect(name string) *queryBuilder {
@@ -65,6 +65,14 @@ func (b *queryBuilder) Include(names ...string) *queryBuilder {
 	}
 	for _, name := range names {
 		b.include[name] = true
+	}
+	return b
+}
+
+func (b *queryBuilder) IncludeStruct(aStruct interface{}) *queryBuilder {
+	names := structFields(reflect.TypeOf(aStruct)).columnNames()
+	for _, name := range names {
+		b.columns = append(b.columns, NewTemplate(name))
 	}
 	return b
 }

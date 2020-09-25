@@ -26,7 +26,7 @@ func (c Condition) Append(format string, values ...interface{}) Condition {
 }
 
 func (c Condition) AppendStruct(i interface{}) Condition {
-	m := GetColumnValueMapFromStruct(reflect.ValueOf(i), false)
+	m := getColumnValueMapFromStruct(reflect.ValueOf(i), false)
 	return c.AppendMap(m)
 }
 

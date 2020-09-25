@@ -23,38 +23,44 @@ type commandBuilder struct {
 	where   Condition
 }
 
-func Insert(table string, row map[string]interface{}) *commandBuilder {
-	b := &commandBuilder{table: table, action: actionInsert}
-	for k, v := range row {
-		b.columns = append(b.columns, NewTemplate(k, v))
+func Insert(table string, pairs ...map[string]interface{}) *commandBuilder {
+	result := &commandBuilder{table: table, action: actionInsert}
+	var finalPairs map[string]interface{}
+	if len(pairs) > 0 {
+		finalPairs = pairs[0]
 	}
-	return b
+	if finalPairs != nil {
+		result.SetMap(finalPairs)
+	}
+	return result
 }
 
 func InsertStruct(aStruct interface{}) *commandBuilder {
-	return Insert(TableName(aStruct), GetColumnValueMapFromStruct(reflect.ValueOf(aStruct), true))
+	return Insert(TableName(aStruct)).SetStruct(aStruct, true)
 }
 
-func Update(table string, pairs map[string]interface{}) *commandBuilder {
-	b := &commandBuilder{table: table, action: actionUpdate}
-	for k, v := range pairs {
-		b.columns = append(b.columns, NewTemplate(k, v))
+func Update(table string, pairs ...map[string]interface{}) *commandBuilder {
+	result := &commandBuilder{table: table, action: actionUpdate}
+	var finalPairs map[string]interface{}
+	if len(pairs) > 0 {
+		finalPairs = pairs[0]
 	}
-	return b
+	if finalPairs != nil {
+		result.SetMap(finalPairs)
+	}
+	return result
 }
 
-func UpdateStruct(i interface{}) *commandBuilder {
-	return Update(TableName(i), GetColumnValueMapFromStruct(reflect.ValueOf(i), false))
+func UpdateStruct(aStruct interface{}) *commandBuilder {
+	return Update(TableName(aStruct)).SetStruct(aStruct, false)
 }
 
 func Delete(table string) *commandBuilder {
-	b := &commandBuilder{table: table, action: actionDelete}
-	return b
+	return &commandBuilder{table: table, action: actionDelete}
 }
 
 func DeleteStruct(aStruct interface{}) *commandBuilder {
-	b := &commandBuilder{table: TableName(aStruct), action: actionDelete}
-	return b
+	return &commandBuilder{table: TableName(aStruct), action: actionDelete}
 }
 
 func (b *commandBuilder) Dialect(name string) *commandBuilder {
@@ -65,6 +71,21 @@ func (b *commandBuilder) Dialect(name string) *commandBuilder {
 func (b *commandBuilder) Table(name string) *commandBuilder {
 	b.table = name
 	return b
+}
+
+func (b *commandBuilder) SetMap(m map[string]interface{}) *commandBuilder {
+	for k, v := range m {
+		b.columns = append(b.columns, NewTemplate(k, v))
+	}
+	return b
+}
+
+func (b *commandBuilder) SetStruct(aStruct interface{}, includeZeroValue bool) *commandBuilder {
+	if aStruct == nil {
+		return b
+	}
+	m := getColumnValueMapFromStruct(reflect.ValueOf(aStruct), includeZeroValue)
+	return b.SetMap(m)
 }
 
 func (b *commandBuilder) Include(names ...string) *commandBuilder {
