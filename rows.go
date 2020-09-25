@@ -31,6 +31,40 @@ func (r *Rows) Scan(callback func(scan func(...interface{}) error, abort func())
 	return r.Raw.Close()
 }
 
+func (r *Rows) Value(value interface{}) error {
+	if !r.Raw.Next() {
+		return sql.ErrNoRows
+	}
+	return r.Raw.Scan(value)
+}
+
+func (r *Rows) Values(slice interface{}) error {
+	reflectValue := reflect.ValueOf(slice)
+	if reflectValue.Kind() != reflect.Ptr {
+		return errors.New("bear: scan rows to values: require pointer type")
+	}
+	reflectValue = reflectValue.Elem()
+	if reflectValue.Kind() != reflect.Slice {
+		return errors.New("bear: scan rows to values: require slice type")
+	}
+
+	elemType := reflectValue.Type().Elem()
+
+	if reflectValue.IsNil() {
+		reflectValue = reflect.MakeSlice(elemType, 0, 0)
+	}
+
+	for r.Raw.Next() {
+		item := reflect.New(elemType)
+		if err := r.Raw.Scan(item.Interface()); err != nil {
+			return err
+		}
+		reflectValue.Set(reflect.Append(reflectValue, item.Elem()))
+	}
+
+	return nil
+}
+
 func (r *Rows) MapSlice() ([]map[string]interface{}, error) {
 	columns, err := r.Raw.Columns()
 	if err != nil {
