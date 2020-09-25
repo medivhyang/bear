@@ -8,17 +8,18 @@ import (
 )
 
 type queryBuilder struct {
-	dialect string
-	table   string
-	columns []Template
-	include map[string]bool
-	exclude map[string]bool
-	joins   []Template
-	where   Condition
-	groupBy []string
-	having  Condition
-	orderBy []string
-	paging  Template
+	dialect  string
+	table    string
+	distinct bool
+	columns  []Template
+	include  map[string]bool
+	exclude  map[string]bool
+	joins    []Template
+	where    Condition
+	groupBy  []string
+	having   Condition
+	orderBy  []string
+	paging   Template
 }
 
 func Select(table string, columns ...string) *queryBuilder {
@@ -50,6 +51,11 @@ func (b *queryBuilder) Dialect(name string) *queryBuilder {
 
 func (b *queryBuilder) Table(name string) *queryBuilder {
 	b.table = name
+	return b
+}
+
+func (b *queryBuilder) Distinct(value bool) *queryBuilder {
+	b.distinct = value
 	return b
 }
 
@@ -170,10 +176,17 @@ func (b *queryBuilder) Build() Template {
 			formats = append(formats, c.Format)
 			result.Values = append(result.Values, c.Values...)
 		}
-		result.Format = fmt.Sprintf("select %s from %s",
-			strings.Join(formats, ","),
-			b.table,
-		)
+		if b.distinct {
+			result.Format = fmt.Sprintf("select distinct %s from %s",
+				strings.Join(formats, ","),
+				b.table,
+			)
+		} else {
+			result.Format = fmt.Sprintf("select %s from %s",
+				strings.Join(formats, ","),
+				b.table,
+			)
+		}
 	}
 
 	for _, item := range b.joins {
