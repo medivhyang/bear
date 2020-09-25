@@ -62,6 +62,10 @@ func (r *Rows) Values(slice interface{}) error {
 		reflectValue.Set(reflect.Append(reflectValue, item.Elem()))
 	}
 
+	if err := r.Raw.Close(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
