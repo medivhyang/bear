@@ -51,7 +51,7 @@ func (r *Rows) Values(slice interface{}) error {
 	elemType := reflectValue.Type().Elem()
 
 	if reflectValue.IsNil() {
-		reflectValue = reflect.MakeSlice(elemType, 0, 0)
+		reflectValue = reflect.MakeSlice(reflectValue.Type(), 0, 0)
 	}
 
 	for r.Raw.Next() {
