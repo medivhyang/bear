@@ -107,20 +107,20 @@ func (t Template) QueryContext(ctx context.Context, querier WithContextQuerier) 
 	return WrapRows(rows), nil
 }
 
-func (t Template) QueryValue(ctx context.Context, querier WithContextQuerier, value interface{}) error {
+func (t Template) QueryScalar(ctx context.Context, querier WithContextQuerier, value interface{}) error {
 	rows, err := t.QueryContext(ctx, querier)
 	if err != nil {
 		return err
 	}
-	return rows.Value(value)
+	return rows.Scalar(value)
 }
 
-func (t Template) QueryValues(ctx context.Context, querier WithContextQuerier, values interface{}) error {
+func (t Template) QueryScalarSlice(ctx context.Context, querier WithContextQuerier, values interface{}) error {
 	rows, err := t.QueryContext(ctx, querier)
 	if err != nil {
 		return err
 	}
-	return rows.Values(values)
+	return rows.ScalarSlice(values)
 }
 
 func (t Template) QueryMap(ctx context.Context, querier WithContextQuerier) (map[string]interface{}, error) {

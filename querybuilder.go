@@ -234,6 +234,30 @@ func (b *queryBuilder) QueryContext(ctx context.Context, querier WithContextQuer
 	return b.Build().QueryContext(ctx, querier)
 }
 
+func (b *queryBuilder) QueryScalar(ctx context.Context, querier WithContextQuerier, value interface{}) error {
+	return b.Build().QueryScalar(ctx, querier, value)
+}
+
+func (b *queryBuilder) QueryScalarSlice(ctx context.Context, querier WithContextQuerier, values interface{}) error {
+	return b.Build().QueryScalarSlice(ctx, querier, values)
+}
+
+func (b *queryBuilder) QueryMap(ctx context.Context, querier WithContextQuerier) (map[string]interface{}, error) {
+	return b.Build().QueryMap(ctx, querier)
+}
+
+func (b *queryBuilder) QueryMapSlice(ctx context.Context, querier WithContextQuerier) ([]map[string]interface{}, error) {
+	return b.Build().QueryMapSlice(ctx, querier)
+}
+
+func (b *queryBuilder) QueryStruct(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
+	return b.Build().QueryStruct(ctx, querier, structPtr)
+}
+
+func (b *queryBuilder) QueryStructSlice(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
+	return b.Build().QueryStructSlice(ctx, querier, structPtr)
+}
+
 func (b *queryBuilder) finalColumns() []Template {
 	var includedColumns []Template
 	if len(b.include) > 0 {

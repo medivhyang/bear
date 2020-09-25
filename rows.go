@@ -31,14 +31,14 @@ func (r *Rows) Scan(callback func(scan func(...interface{}) error, abort func())
 	return r.Raw.Close()
 }
 
-func (r *Rows) Value(value interface{}) error {
+func (r *Rows) Scalar(value interface{}) error {
 	if !r.Raw.Next() {
 		return sql.ErrNoRows
 	}
 	return r.Raw.Scan(value)
 }
 
-func (r *Rows) Values(slice interface{}) error {
+func (r *Rows) ScalarSlice(slice interface{}) error {
 	reflectValue := reflect.ValueOf(slice)
 	if reflectValue.Kind() != reflect.Ptr {
 		return errors.New("bear: scan rows to values: require pointer type")
