@@ -35,7 +35,10 @@ func (r *Rows) Scalar(value interface{}) error {
 	if !r.Raw.Next() {
 		return sql.ErrNoRows
 	}
-	return r.Raw.Scan(value)
+	if err := r.Raw.Scan(value); err != nil {
+		return err
+	}
+	return r.Raw.Close()
 }
 
 func (r *Rows) ScalarSlice(slice interface{}) error {
@@ -58,11 +61,7 @@ func (r *Rows) ScalarSlice(slice interface{}) error {
 		reflectValue.Set(reflect.Append(reflectValue, item.Elem()))
 	}
 
-	if err := r.Raw.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return r.Raw.Close()
 }
 
 func (r *Rows) MapSlice() ([]map[string]interface{}, error) {
