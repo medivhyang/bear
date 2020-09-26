@@ -1,4 +1,4 @@
-package expr
+package expression
 
 import (
 	"fmt"

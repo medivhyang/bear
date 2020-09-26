@@ -1,4 +1,4 @@
-package expr
+package expression
 
 import (
 	"fmt"
@@ -64,6 +64,14 @@ func binary(op string, name string, value interface{}) bear.Template {
 }
 
 func In(name string, value interface{}) bear.Template {
+	return in(name, value, "in")
+}
+
+func NotIn(name string, value interface{}) bear.Template {
+	return in(name, value, "not in")
+}
+
+func in(name string, value interface{}, op string) bear.Template {
 	var (
 		format string
 		values []interface{}
@@ -75,9 +83,9 @@ func In(name string, value interface{}) bear.Template {
 			for i := 0; i < len(t.Values); i++ {
 				holders = append(holders, "?")
 			}
-			format = fmt.Sprintf("%s in (%s)", name, strings.Join(holders, ","))
+			format = fmt.Sprintf("%s %s (%s)", name, strings.Join(holders, ","), op)
 		} else {
-			format = fmt.Sprintf("%s in (%s)", name, t.Format)
+			format = fmt.Sprintf("%s %s (%s)", name, t.Format, op)
 		}
 		values = append(values, t.Values...)
 	} else {
@@ -86,7 +94,7 @@ func In(name string, value interface{}) bear.Template {
 			reflectValue = reflectValue.Elem()
 		}
 		if reflectValue.Kind() != reflect.Slice {
-			panic("bear: expr in: require slice")
+			panic(fmt.Sprintf("bear: expr %s: require slice", op))
 		}
 		var holders []string
 		for i := 0; i < reflectValue.Len(); i++ {
@@ -95,12 +103,20 @@ func In(name string, value interface{}) bear.Template {
 		for i := 0; i < reflectValue.Len(); i++ {
 			values = append(values, reflectValue.Index(i).Interface())
 		}
-		format = fmt.Sprintf("%s in (%s)", name, strings.Join(holders, ","))
+		format = fmt.Sprintf("%s %s (%s)", name, op, strings.Join(holders, ","))
 	}
 	return bear.NewTemplate(format, values...)
 }
 
 func Between(name string, left interface{}, right interface{}) bear.Template {
+	return between(name, left, right, "between")
+}
+
+func NotBetween(name string, left interface{}, right interface{}) bear.Template {
+	return between(name, left, right, "not between")
+}
+
+func between(name string, left interface{}, right interface{}, op string) bear.Template {
 	var (
 		format string
 		values []interface{}
@@ -108,13 +124,13 @@ func Between(name string, left interface{}, right interface{}) bear.Template {
 	leftTemplate, ok := left.(bear.Template)
 	if ok {
 		if leftTemplate.IsEmptyOrWhitespace() {
-			format = fmt.Sprintf("%s between ?", name)
+			format = fmt.Sprintf("%s %s ?", name, op)
 		} else {
-			format = fmt.Sprintf("%s between (%s)", name, leftTemplate.Format)
+			format = fmt.Sprintf("%s %s (%s)", name, op, leftTemplate.Format)
 		}
 		values = append(values, leftTemplate.Values...)
 	} else {
-		format = fmt.Sprintf("%s between ?", name)
+		format = fmt.Sprintf("%s %s ?", name, op)
 		values = append(values, left)
 	}
 	rightTemplate, ok := right.(bear.Template)
@@ -129,5 +145,27 @@ func Between(name string, left interface{}, right interface{}) bear.Template {
 		format += fmt.Sprintf(" and ?")
 		values = append(values, right)
 	}
+	return bear.NewTemplate(format, values...)
+}
+
+func Exists(t bear.Template) bear.Template {
+	return exists(t, "exists")
+}
+
+func NotExists(t bear.Template) bear.Template {
+	return exists(t, "not exists")
+}
+
+func exists(t bear.Template, op string) bear.Template {
+	var (
+		format string
+		values []interface{}
+	)
+	if t.IsEmptyOrWhitespace() {
+		return bear.Template{}
+	} else {
+		format = fmt.Sprintf("%s (%s)", op, t.Format)
+	}
+	values = append(values, t.Values...)
 	return bear.NewTemplate(format, values...)
 }
