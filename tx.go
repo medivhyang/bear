@@ -5,14 +5,7 @@ import (
 	"database/sql"
 )
 
-type TxDB interface {
-	Querier
-	WithContextQuerier
-	Executor
-	WithContextExectutor
-}
-
-func Tx(ctx context.Context, db *sql.DB, f func(tx TxDB) error, opts ...*sql.TxOptions) error {
+func BeginTx(ctx context.Context, db Tx, f func(db DB) error, opts ...*sql.TxOptions) error {
 	var finalOpts *sql.TxOptions
 	if len(opts) > 0 {
 		finalOpts = opts[0]
