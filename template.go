@@ -23,6 +23,12 @@ type (
 	WithContextQuerier interface {
 		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	}
+	DB interface {
+		Executor
+		WithContextExectutor
+		Querier
+		WithContextQuerier
+	}
 )
 
 type Template struct {
