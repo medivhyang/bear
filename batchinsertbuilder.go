@@ -124,12 +124,12 @@ func (b *BatchInsertBuilder) Build() Template {
 	return NewTemplate(format, values...)
 }
 
-func (b *BatchInsertBuilder) Execute(exectutor Executor) (*Result, error) {
-	return b.Build().Execute(exectutor)
+func (b *BatchInsertBuilder) Execute(db DB) (*Result, error) {
+	return b.Build().Execute(db)
 }
 
-func (b *BatchInsertBuilder) ExecuteContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
-	return b.Build().ExecuteContext(ctx, exectutor)
+func (b *BatchInsertBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
+	return b.Build().ExecuteContext(ctx, db)
 }
 
 func (b *BatchInsertBuilder) finalRows() [][]Template {

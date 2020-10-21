@@ -256,36 +256,36 @@ func (b *QueryBuilder) Build() Template {
 	return result
 }
 
-func (b *QueryBuilder) Query(querier Querier) (*Rows, error) {
-	return b.Build().Query(querier)
+func (b *QueryBuilder) Query(db DB) (*Rows, error) {
+	return b.Build().Query(db)
 }
 
-func (b *QueryBuilder) QueryContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
-	return b.Build().QueryContext(ctx, querier)
+func (b *QueryBuilder) QueryContext(ctx context.Context, db DB) (*Rows, error) {
+	return b.Build().QueryContext(ctx, db)
 }
 
-func (b *QueryBuilder) QueryScalar(ctx context.Context, querier WithContextQuerier, value interface{}) error {
-	return b.Build().QueryScalar(ctx, querier, value)
+func (b *QueryBuilder) QueryScalar(ctx context.Context, db DB, value interface{}) error {
+	return b.Build().QueryScalar(ctx, db, value)
 }
 
-func (b *QueryBuilder) QueryScalarSlice(ctx context.Context, querier WithContextQuerier, values interface{}) error {
-	return b.Build().QueryScalarSlice(ctx, querier, values)
+func (b *QueryBuilder) QueryScalarSlice(ctx context.Context, db DB, values interface{}) error {
+	return b.Build().QueryScalarSlice(ctx, db, values)
 }
 
-func (b *QueryBuilder) QueryMap(ctx context.Context, querier WithContextQuerier) (map[string]interface{}, error) {
-	return b.Build().QueryMap(ctx, querier)
+func (b *QueryBuilder) QueryMap(ctx context.Context, db DB) (map[string]interface{}, error) {
+	return b.Build().QueryMap(ctx, db)
 }
 
-func (b *QueryBuilder) QueryMapSlice(ctx context.Context, querier WithContextQuerier) ([]map[string]interface{}, error) {
-	return b.Build().QueryMapSlice(ctx, querier)
+func (b *QueryBuilder) QueryMapSlice(ctx context.Context, db DB) ([]map[string]interface{}, error) {
+	return b.Build().QueryMapSlice(ctx, db)
 }
 
-func (b *QueryBuilder) QueryStruct(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
-	return b.Build().QueryStruct(ctx, querier, structPtr)
+func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, structPtr interface{}) error {
+	return b.Build().QueryStruct(ctx, db, structPtr)
 }
 
-func (b *QueryBuilder) QueryStructSlice(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
-	return b.Build().QueryStructSlice(ctx, querier, structPtr)
+func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
+	return b.Build().QueryStructSlice(ctx, db, structPtr)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {

@@ -67,96 +67,96 @@ func (t Template) Or(other Template) Template {
 	return t.Join(other, " or ")
 }
 
-func (t Template) Query(querier Querier) (*Rows, error) {
+func (t Template) Query(db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
 	debugf("query: %s\n", t)
-	rows, err := querier.Query(t.Format, t.Values...)
+	rows, err := db.Query(t.Format, t.Values...)
 	if err != nil {
 		return nil, err
 	}
 	return WrapRows(rows), nil
 }
 
-func (t Template) QueryContext(ctx context.Context, querier WithContextQuerier) (*Rows, error) {
+func (t Template) QueryContext(ctx context.Context, db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
 	debugf("query: %s\n", t)
-	rows, err := querier.QueryContext(ctx, t.Format, t.Values...)
+	rows, err := db.QueryContext(ctx, t.Format, t.Values...)
 	if err != nil {
 		return nil, err
 	}
 	return WrapRows(rows), nil
 }
 
-func (t Template) QueryScalar(ctx context.Context, querier WithContextQuerier, value interface{}) error {
-	rows, err := t.QueryContext(ctx, querier)
+func (t Template) QueryScalar(ctx context.Context, db DB, value interface{}) error {
+	rows, err := t.QueryContext(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.Scalar(value)
 }
 
-func (t Template) QueryScalarSlice(ctx context.Context, querier WithContextQuerier, values interface{}) error {
-	rows, err := t.QueryContext(ctx, querier)
+func (t Template) QueryScalarSlice(ctx context.Context, db DB, values interface{}) error {
+	rows, err := t.QueryContext(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.ScalarSlice(values)
 }
 
-func (t Template) QueryMap(ctx context.Context, querier WithContextQuerier) (map[string]interface{}, error) {
-	rows, err := t.QueryContext(ctx, querier)
+func (t Template) QueryMap(ctx context.Context, db DB) (map[string]interface{}, error) {
+	rows, err := t.QueryContext(ctx, db)
 	if err != nil {
 		return nil, err
 	}
 	return rows.Map()
 }
 
-func (t Template) QueryMapSlice(ctx context.Context, querier WithContextQuerier) ([]map[string]interface{}, error) {
-	rows, err := t.QueryContext(ctx, querier)
+func (t Template) QueryMapSlice(ctx context.Context, db DB) ([]map[string]interface{}, error) {
+	rows, err := t.QueryContext(ctx, db)
 	if err != nil {
 		return nil, err
 	}
 	return rows.MapSlice()
 }
 
-func (t Template) QueryStruct(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
-	rows, err := t.QueryContext(ctx, querier)
+func (t Template) QueryStruct(ctx context.Context, db DB, structPtr interface{}) error {
+	rows, err := t.QueryContext(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.Struct(structPtr)
 }
 
-func (t Template) QueryStructSlice(ctx context.Context, querier WithContextQuerier, structPtr interface{}) error {
-	rows, err := t.QueryContext(ctx, querier)
+func (t Template) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
+	rows, err := t.QueryContext(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.StructSlice(structPtr)
 }
 
-func (t Template) Execute(executor Executor) (*Result, error) {
+func (t Template) Execute(db DB) (*Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
 	debugf("exec: %s\n", t)
-	result, err := executor.Exec(t.Format, t.Values...)
+	result, err := db.Exec(t.Format, t.Values...)
 	if err != nil {
 		return nil, err
 	}
 	return WrapResult(result), nil
 }
 
-func (t Template) ExecuteContext(ctx context.Context, executor WithContextExectutor) (*Result, error) {
+func (t Template) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
 	debugf("exec: %s\n", t)
-	result, err := executor.ExecContext(ctx, t.Format, t.Values...)
+	result, err := db.ExecContext(ctx, t.Format, t.Values...)
 	if err != nil {
 		return nil, err
 	}

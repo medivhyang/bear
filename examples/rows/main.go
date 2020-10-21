@@ -45,7 +45,7 @@ func init() {
 		{ID: 4, Name: "Jason", Age: 33, Role: "teacher", Created: time.Now().Unix()},
 		{ID: 5, Name: "Monica", Age: 34, Role: "teacher", Created: time.Now().Unix()},
 	}
-	if _, err := bear.BatchInsertStruct(data).Execute(db); err != nil {
+	if _, err := bear.BatchInsertStruct("user", data).Execute(db); err != nil {
 		panic(err)
 	}
 }

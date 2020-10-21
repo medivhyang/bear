@@ -5,7 +5,7 @@ import (
 	"database/sql"
 )
 
-func BeginTx(ctx context.Context, db Tx, f func(db DB) error, opts ...*sql.TxOptions) error {
+func BeginTx(ctx context.Context, db DBWithTx, f func(tx DB) error, opts ...*sql.TxOptions) error {
 	var finalOpts *sql.TxOptions
 	if len(opts) > 0 {
 		finalOpts = opts[0]

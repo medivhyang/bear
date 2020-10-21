@@ -217,12 +217,12 @@ func (b *CommandBuilder) Build() Template {
 	return result
 }
 
-func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
-	return b.Build().Execute(exectutor)
+func (b *CommandBuilder) Execute(db DB) (*Result, error) {
+	return b.Build().Execute(db)
 }
 
-func (b *CommandBuilder) ExecuteContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
-	return b.Build().ExecuteContext(ctx, exectutor)
+func (b *CommandBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
+	return b.Build().ExecuteContext(ctx, db)
 }
 
 func (b *CommandBuilder) finalColumns() []Template {
