@@ -2,6 +2,7 @@ package bear
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -286,6 +287,23 @@ func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, structPtr interfa
 
 func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
 	return b.Build().QueryStructSlice(ctx, db, structPtr)
+}
+
+func (b *QueryBuilder) QuerySelectStruct(ctx context.Context, db DB, structPtr interface{}) error {
+	b.StructColumns(structPtr)
+	return b.QueryStruct(ctx, db, structPtr)
+}
+
+func (b *QueryBuilder) QuerySelectStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
+	typo := reflect.TypeOf(structPtr)
+	for typo.Kind() == reflect.Ptr {
+		typo = typo.Elem()
+	}
+	if typo.Kind() != reflect.Slice {
+		return errors.New("bear: require struct slice")
+	}
+	b.StructColumns(reflect.New(typo.Elem()).Elem().Interface())
+	return b.QueryStructSlice(ctx, db, structPtr)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {
