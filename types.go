@@ -16,32 +16,10 @@ var (
 	TagKeyValueSeparator = ":"
 	TagNestedKeyIgnore   = "-"
 
-	TagParseMethod tagParseMethod = TagParseMethodIndex
-
 	TagNestedKeyColumnName = "column"
 	TagNestedKeyTypeName   = "type"
 	TagNestedKeySuffixName = "suffix"
-
-	TagNestedKeyColumnIndex = 0
-	TagNestedKeyTypeIndex   = 1
-	TagNestedKeySuffixIndex = 2
 )
-
-type tagParseMethod string
-
-const (
-	TagParseMethodIndex = "index"
-	TagParseMethodName  = "name"
-)
-
-func (m tagParseMethod) Valid() bool {
-	switch m {
-	case TagParseMethodIndex, TagParseMethodName:
-		return true
-	default:
-		return false
-	}
-}
 
 type structField struct {
 	index int
@@ -50,7 +28,7 @@ type structField struct {
 	tag   map[string]string
 }
 
-func (field structField) column(dialectName string) (Column, bool) {
+func (field structField) column(dialect string) (Column, bool) {
 	result := Column{}
 	name := field.columnName()
 	if name == "" {
@@ -60,7 +38,7 @@ func (field structField) column(dialectName string) (Column, bool) {
 	if typo := field.tag[TagNestedKeyTypeName]; typo != "" {
 		result.Type = typo
 	} else {
-		if d := getDialect(dialectName); d != nil {
+		if d := getDialect(dialect); d != nil {
 			result.Type = d.TypeMapping(field.typo)
 		}
 	}
@@ -175,17 +153,6 @@ func (fields structFieldSlice) columnNames() []string {
 }
 
 func parseTag(tag string) map[string]string {
-	switch TagParseMethod {
-	case TagParseMethodIndex:
-		return parseTagByIndex(tag)
-	case TagParseMethodName:
-		return parseTagByName(tag)
-	default:
-		panic("bear: invalid tag parse method")
-	}
-}
-
-func parseTagByName(tag string) map[string]string {
 	result := map[string]string{}
 	tag = strings.TrimSpace(tag)
 	if tag == "" {
@@ -208,27 +175,7 @@ func parseTagByName(tag string) map[string]string {
 	return result
 }
 
-func parseTagByIndex(tag string) map[string]string {
-	result := map[string]string{}
-	tag = strings.TrimSpace(tag)
-	if tag == "" {
-		return result
-	}
-	items := strings.Split(tag, TagItemSeparator)
-	count := len(items)
-	if count > TagNestedKeyColumnIndex {
-		result[TagNestedKeyColumnName] = items[TagNestedKeyColumnIndex]
-	}
-	if count > TagNestedKeyTypeIndex {
-		result[TagNestedKeyTypeName] = items[TagNestedKeyTypeIndex]
-	}
-	if count > TagNestedKeySuffixIndex {
-		result[TagNestedKeySuffixName] = items[TagNestedKeySuffixIndex]
-	}
-	return result
-}
-
-func getColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[string]interface{} {
+func toColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[string]interface{} {
 	for value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}

@@ -7,14 +7,25 @@ import (
 	"strings"
 )
 
+type CommandAction string
+
 const (
-	actionInsert = "insert"
-	actionUpdate = "update"
-	actionDelete = "delete"
+	CommandActionInsert CommandAction = "insert"
+	CommandActionUpdate CommandAction = "update"
+	CommandActionDelete CommandAction = "delete"
 )
 
+func (a CommandAction) Valid() bool {
+	switch a {
+	case CommandActionInsert, CommandActionUpdate, CommandActionDelete:
+		return true
+	default:
+		return false
+	}
+}
+
 type commandBuilder struct {
-	action  string
+	action  CommandAction
 	dialect string
 	table   string
 	columns []Template
@@ -23,44 +34,68 @@ type commandBuilder struct {
 	where   Condition
 }
 
-func Insert(table string, pairs ...map[string]interface{}) *commandBuilder {
-	result := &commandBuilder{table: table, action: actionInsert}
-	var finalPairs map[string]interface{}
-	if len(pairs) > 0 {
-		finalPairs = pairs[0]
+func NewCommandBuilder(dialect ...string) *commandBuilder {
+	b := &commandBuilder{}
+	if len(dialect) > 0 {
+		b.Dialect(dialect[0])
 	}
-	if finalPairs != nil {
-		result.SetMap(finalPairs)
-	}
-	return result
+	return b
 }
 
-func InsertStruct(aStruct interface{}) *commandBuilder {
-	return Insert(TableName(aStruct)).SetStruct(aStruct, true)
+func Insert(table string, pairs ...map[string]interface{}) *commandBuilder {
+	return NewCommandBuilder().Insert(table, pairs...)
+}
+
+func InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+	return NewCommandBuilder().InsertStruct(table, aStruct, includeZeroValue...)
 }
 
 func Update(table string, pairs ...map[string]interface{}) *commandBuilder {
-	result := &commandBuilder{table: table, action: actionUpdate}
-	var finalPairs map[string]interface{}
-	if len(pairs) > 0 {
-		finalPairs = pairs[0]
-	}
-	if finalPairs != nil {
-		result.SetMap(finalPairs)
-	}
-	return result
+	return NewCommandBuilder().Update(table, pairs...)
 }
 
-func UpdateStruct(aStruct interface{}) *commandBuilder {
-	return Update(TableName(aStruct)).SetStruct(aStruct, false)
+func UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+	return NewCommandBuilder().UpdateStruct(table, aStruct, includeZeroValue...)
 }
 
 func Delete(table string) *commandBuilder {
-	return &commandBuilder{table: table, action: actionDelete}
+	return NewCommandBuilder().Delete(table)
 }
 
-func DeleteStruct(aStruct interface{}) *commandBuilder {
-	return &commandBuilder{table: TableName(aStruct), action: actionDelete}
+func (b *commandBuilder) Action(a CommandAction) *commandBuilder {
+	if !a.Valid() {
+		panic(fmt.Sprintf("bear: invalid command action %q", string(a)))
+	}
+	b.action = a
+	return b
+}
+
+func (b *commandBuilder) Insert(table string, pairs ...map[string]interface{}) *commandBuilder {
+	b.Table(table).Action(CommandActionInsert)
+	if len(pairs) > 0 {
+		b.SetMap(pairs[0])
+	}
+	return b
+}
+
+func (b *commandBuilder) InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+	return b.Table(table).Action(CommandActionInsert).SetStruct(aStruct, includeZeroValue...)
+}
+
+func (b *commandBuilder) Update(table string, pairs ...map[string]interface{}) *commandBuilder {
+	b.Table(table).Action(CommandActionUpdate)
+	if len(pairs) > 0 {
+		b.SetMap(pairs[0])
+	}
+	return b
+}
+
+func (b *commandBuilder) UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+	return b.Table(table).Action(CommandActionUpdate).SetStruct(aStruct, includeZeroValue...)
+}
+
+func (b *commandBuilder) Delete(table string) *commandBuilder {
+	return b.Table(table).Action(CommandActionDelete)
 }
 
 func (b *commandBuilder) Dialect(name string) *commandBuilder {
@@ -85,11 +120,15 @@ func (b *commandBuilder) SetMap(m map[string]interface{}) *commandBuilder {
 	return b
 }
 
-func (b *commandBuilder) SetStruct(aStruct interface{}, includeZeroValue bool) *commandBuilder {
+func (b *commandBuilder) SetStruct(aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
 	if aStruct == nil {
 		return b
 	}
-	m := getColumnValueMapFromStruct(reflect.ValueOf(aStruct), includeZeroValue)
+	finalIncludeZeroValue := false
+	if len(includeZeroValue) > 0 {
+		finalIncludeZeroValue = includeZeroValue[0]
+	}
+	m := toColumnValueMapFromStruct(reflect.ValueOf(aStruct), finalIncludeZeroValue)
 	return b.SetMap(m)
 }
 
@@ -128,8 +167,8 @@ func (b *commandBuilder) WhereMap(m map[string]interface{}) *commandBuilder {
 	return b
 }
 
-func (b *commandBuilder) WhereStruct(i interface{}) *commandBuilder {
-	b.where = b.where.AppendStruct(i)
+func (b *commandBuilder) WhereStruct(aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+	b.where = b.where.AppendStruct(aStruct, includeZeroValue...)
 	return b
 }
 
@@ -137,7 +176,7 @@ func (b *commandBuilder) Build() Template {
 	result := Template{}
 	columns := b.finalColumns()
 	switch b.action {
-	case actionInsert:
+	case CommandActionInsert:
 		var (
 			names   []string
 			values  []interface{}
@@ -154,7 +193,7 @@ func (b *commandBuilder) Build() Template {
 			strings.Join(holders, ","),
 		)
 		result.Values = append(result.Values, values...)
-	case actionUpdate:
+	case CommandActionUpdate:
 		var (
 			values []interface{}
 			pairs  []string
@@ -168,7 +207,7 @@ func (b *commandBuilder) Build() Template {
 			strings.Join(pairs, ","),
 		)
 		result.Values = append(result.Values, values...)
-	case actionDelete:
+	case CommandActionDelete:
 		result.Format = fmt.Sprintf("delete from %s", b.table)
 	}
 	where := b.where.Build()

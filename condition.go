@@ -25,8 +25,12 @@ func (c Condition) Append(format string, values ...interface{}) Condition {
 	return c.AppendTemplate(NewTemplate(format, values...))
 }
 
-func (c Condition) AppendStruct(i interface{}) Condition {
-	m := getColumnValueMapFromStruct(reflect.ValueOf(i), false)
+func (c Condition) AppendStruct(i interface{}, includeZeroValue ...bool) Condition {
+	finalIncludeZeroValue := false
+	if len(includeZeroValue) > 0 {
+		finalIncludeZeroValue = includeZeroValue[0]
+	}
+	m := toColumnValueMapFromStruct(reflect.ValueOf(i), finalIncludeZeroValue)
 	return c.AppendMap(m)
 }
 

@@ -22,26 +22,44 @@ type queryBuilder struct {
 	paging   Template
 }
 
-func Select(table string, columns ...string) *queryBuilder {
-	b := queryBuilder{table: table}
-	for _, column := range columns {
-		b.columns = append(b.columns, NewTemplate(column))
+func NewQueryBuilder(dialect ...string) *queryBuilder {
+	b := &queryBuilder{}
+	if len(dialect) > 0 {
+		b.Dialect(dialect[0])
 	}
-	return &b
+	return b
+}
+
+func Select(table string, columns ...string) *queryBuilder {
+	return NewQueryBuilder().Select(table, columns...)
 }
 
 func SelectTemplate(table string, columns ...Template) *queryBuilder {
-	b := queryBuilder{table: table}
-	b.columns = append(b.columns, columns...)
-	return &b
+	return NewQueryBuilder().SelectTemplate(table, columns...)
 }
 
-func SelectStruct(aStruct interface{}) *queryBuilder {
-	return Select(TableName(aStruct)).IncludeStruct(aStruct)
+func SelectStruct(table string, aStruct interface{}) *queryBuilder {
+	return NewQueryBuilder().SelectStruct(table, aStruct)
 }
 
-func SelectWhere(aStruct interface{}) *queryBuilder {
-	return Select(TableName(aStruct)).IncludeStruct(aStruct).WhereStruct(aStruct)
+func SelectWhereStruct(table string, aStruct interface{}) *queryBuilder {
+	return NewQueryBuilder().SelectWhereStruct(table, aStruct)
+}
+
+func (b *queryBuilder) Select(table string, columns ...string) *queryBuilder {
+	return b.Table(table).Columns(columns...)
+}
+
+func (b *queryBuilder) SelectTemplate(table string, columns ...Template) *queryBuilder {
+	return b.Table(table).TemplateColumns(columns...)
+}
+
+func (b *queryBuilder) SelectStruct(table string, aStruct interface{}) *queryBuilder {
+	return b.Table(table).StructColumns(aStruct)
+}
+
+func (b *queryBuilder) SelectWhereStruct(table string, aStruct interface{}, includeZeroValue ...bool) *queryBuilder {
+	return b.Table(table).StructColumns(aStruct).WhereStruct(aStruct, includeZeroValue...)
 }
 
 func (b *queryBuilder) Dialect(name string) *queryBuilder {
@@ -59,20 +77,32 @@ func (b *queryBuilder) Distinct(value bool) *queryBuilder {
 	return b
 }
 
+func (b *queryBuilder) Columns(columns ...string) *queryBuilder {
+	for _, column := range columns {
+		b.columns = append(b.columns, NewTemplate(column))
+	}
+	return b
+}
+
+func (b *queryBuilder) TemplateColumns(columns ...Template) *queryBuilder {
+	b.columns = append(b.columns, columns...)
+	return b
+}
+
+func (b *queryBuilder) StructColumns(aStruct interface{}) *queryBuilder {
+	names := structFields(reflect.TypeOf(aStruct)).columnNames()
+	for _, name := range names {
+		b.columns = append(b.columns, NewTemplate(name))
+	}
+	return b
+}
+
 func (b *queryBuilder) Include(names ...string) *queryBuilder {
 	if b.include == nil {
 		b.include = map[string]bool{}
 	}
 	for _, name := range names {
 		b.include[name] = true
-	}
-	return b
-}
-
-func (b *queryBuilder) IncludeStruct(aStruct interface{}) *queryBuilder {
-	names := structFields(reflect.TypeOf(aStruct)).columnNames()
-	for _, name := range names {
-		b.columns = append(b.columns, NewTemplate(name))
 	}
 	return b
 }
@@ -112,8 +142,8 @@ func (b *queryBuilder) WhereMap(m map[string]interface{}) *queryBuilder {
 	return b
 }
 
-func (b *queryBuilder) WhereStruct(i interface{}) *queryBuilder {
-	b.where = b.where.AppendStruct(i)
+func (b *queryBuilder) WhereStruct(i interface{}, includeZeroValue ...bool) *queryBuilder {
+	b.where = b.where.AppendStruct(i, includeZeroValue...)
 	return b
 }
 

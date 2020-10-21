@@ -28,12 +28,12 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	if _, err := bear.DropTableStruct(user{}).
+	if _, err := bear.DropTable("user").
 		OnExists().
 		Execute(db); err != nil {
 		panic(err)
 	}
-	if _, err := bear.CreateTableStruct(user{}).
+	if _, err := bear.CreateTableStruct("user", user{}).
 		OnNotExists().
 		Execute(db); err != nil {
 		panic(err)
@@ -81,7 +81,7 @@ func openSqlite3(filename string) (*sql.DB, error) {
 }
 
 func demoMapSlice(db *sql.DB) {
-	rows, err := bear.SelectStruct(user{}).Query(db)
+	rows, err := bear.SelectStruct("user", user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +95,7 @@ func demoMapSlice(db *sql.DB) {
 }
 
 func demoMap(db *sql.DB) {
-	rows, err := bear.SelectStruct(user{}).Query(db)
+	rows, err := bear.SelectStruct("user", user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +107,7 @@ func demoMap(db *sql.DB) {
 }
 
 func demoStructSlice(db *sql.DB) {
-	rows, err := bear.SelectStruct(user{}).Query(db)
+	rows, err := bear.SelectStruct("user", user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -121,7 +121,7 @@ func demoStructSlice(db *sql.DB) {
 }
 
 func demoStruct(db *sql.DB) {
-	rows, err := bear.SelectStruct(user{}).Query(db)
+	rows, err := bear.SelectStruct("user", user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
