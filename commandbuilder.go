@@ -24,7 +24,7 @@ func (a CommandAction) Valid() bool {
 	}
 }
 
-type commandBuilder struct {
+type CommandBuilder struct {
 	action  CommandAction
 	dialect string
 	table   string
@@ -34,35 +34,35 @@ type commandBuilder struct {
 	where   Condition
 }
 
-func NewCommandBuilder(dialect ...string) *commandBuilder {
-	b := &commandBuilder{}
+func NewCommandBuilder(dialect ...string) *CommandBuilder {
+	b := &CommandBuilder{}
 	if len(dialect) > 0 {
 		b.Dialect(dialect[0])
 	}
 	return b
 }
 
-func Insert(table string, pairs ...map[string]interface{}) *commandBuilder {
+func Insert(table string, pairs ...map[string]interface{}) *CommandBuilder {
 	return NewCommandBuilder().Insert(table, pairs...)
 }
 
-func InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+func InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
 	return NewCommandBuilder().InsertStruct(table, aStruct, includeZeroValue...)
 }
 
-func Update(table string, pairs ...map[string]interface{}) *commandBuilder {
+func Update(table string, pairs ...map[string]interface{}) *CommandBuilder {
 	return NewCommandBuilder().Update(table, pairs...)
 }
 
-func UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+func UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
 	return NewCommandBuilder().UpdateStruct(table, aStruct, includeZeroValue...)
 }
 
-func Delete(table string) *commandBuilder {
+func Delete(table string) *CommandBuilder {
 	return NewCommandBuilder().Delete(table)
 }
 
-func (b *commandBuilder) Action(a CommandAction) *commandBuilder {
+func (b *CommandBuilder) Action(a CommandAction) *CommandBuilder {
 	if !a.Valid() {
 		panic(fmt.Sprintf("bear: invalid command action %q", string(a)))
 	}
@@ -70,7 +70,7 @@ func (b *commandBuilder) Action(a CommandAction) *commandBuilder {
 	return b
 }
 
-func (b *commandBuilder) Insert(table string, pairs ...map[string]interface{}) *commandBuilder {
+func (b *CommandBuilder) Insert(table string, pairs ...map[string]interface{}) *CommandBuilder {
 	b.Table(table).Action(CommandActionInsert)
 	if len(pairs) > 0 {
 		b.SetMap(pairs[0])
@@ -78,11 +78,11 @@ func (b *commandBuilder) Insert(table string, pairs ...map[string]interface{}) *
 	return b
 }
 
-func (b *commandBuilder) InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+func (b *CommandBuilder) InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
 	return b.Table(table).Action(CommandActionInsert).SetStruct(aStruct, includeZeroValue...)
 }
 
-func (b *commandBuilder) Update(table string, pairs ...map[string]interface{}) *commandBuilder {
+func (b *CommandBuilder) Update(table string, pairs ...map[string]interface{}) *CommandBuilder {
 	b.Table(table).Action(CommandActionUpdate)
 	if len(pairs) > 0 {
 		b.SetMap(pairs[0])
@@ -90,37 +90,37 @@ func (b *commandBuilder) Update(table string, pairs ...map[string]interface{}) *
 	return b
 }
 
-func (b *commandBuilder) UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+func (b *CommandBuilder) UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
 	return b.Table(table).Action(CommandActionUpdate).SetStruct(aStruct, includeZeroValue...)
 }
 
-func (b *commandBuilder) Delete(table string) *commandBuilder {
+func (b *CommandBuilder) Delete(table string) *CommandBuilder {
 	return b.Table(table).Action(CommandActionDelete)
 }
 
-func (b *commandBuilder) Dialect(name string) *commandBuilder {
+func (b *CommandBuilder) Dialect(name string) *CommandBuilder {
 	b.dialect = name
 	return b
 }
 
-func (b *commandBuilder) Table(name string) *commandBuilder {
+func (b *CommandBuilder) Table(name string) *CommandBuilder {
 	b.table = name
 	return b
 }
 
-func (b *commandBuilder) Set(column string, value interface{}) *commandBuilder {
+func (b *CommandBuilder) Set(column string, value interface{}) *CommandBuilder {
 	b.columns = append(b.columns, NewTemplate(column, value))
 	return b
 }
 
-func (b *commandBuilder) SetMap(m map[string]interface{}) *commandBuilder {
+func (b *CommandBuilder) SetMap(m map[string]interface{}) *CommandBuilder {
 	for k, v := range m {
 		b.Set(k, v)
 	}
 	return b
 }
 
-func (b *commandBuilder) SetStruct(aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+func (b *CommandBuilder) SetStruct(aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
 	if aStruct == nil {
 		return b
 	}
@@ -132,7 +132,7 @@ func (b *commandBuilder) SetStruct(aStruct interface{}, includeZeroValue ...bool
 	return b.SetMap(m)
 }
 
-func (b *commandBuilder) Include(names ...string) *commandBuilder {
+func (b *CommandBuilder) Include(names ...string) *CommandBuilder {
 	if b.include == nil {
 		b.include = map[string]bool{}
 	}
@@ -142,7 +142,7 @@ func (b *commandBuilder) Include(names ...string) *commandBuilder {
 	return b
 }
 
-func (b *commandBuilder) Exclude(names ...string) *commandBuilder {
+func (b *CommandBuilder) Exclude(names ...string) *CommandBuilder {
 	if b.exclude == nil {
 		b.exclude = map[string]bool{}
 	}
@@ -152,27 +152,27 @@ func (b *commandBuilder) Exclude(names ...string) *commandBuilder {
 	return b
 }
 
-func (b *commandBuilder) Where(format string, values ...interface{}) *commandBuilder {
+func (b *CommandBuilder) Where(format string, values ...interface{}) *CommandBuilder {
 	b.where = b.where.AppendTemplate(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *commandBuilder) WhereTemplate(templates ...Template) *commandBuilder {
+func (b *CommandBuilder) WhereTemplate(templates ...Template) *CommandBuilder {
 	b.where = b.where.AppendTemplate(templates...)
 	return b
 }
 
-func (b *commandBuilder) WhereMap(m map[string]interface{}) *commandBuilder {
+func (b *CommandBuilder) WhereMap(m map[string]interface{}) *CommandBuilder {
 	b.where = b.where.AppendMap(m)
 	return b
 }
 
-func (b *commandBuilder) WhereStruct(aStruct interface{}, includeZeroValue ...bool) *commandBuilder {
+func (b *CommandBuilder) WhereStruct(aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
 	b.where = b.where.AppendStruct(aStruct, includeZeroValue...)
 	return b
 }
 
-func (b *commandBuilder) Build() Template {
+func (b *CommandBuilder) Build() Template {
 	result := Template{}
 	columns := b.finalColumns()
 	switch b.action {
@@ -217,15 +217,15 @@ func (b *commandBuilder) Build() Template {
 	return result
 }
 
-func (b *commandBuilder) Execute(exectutor Executor) (*Result, error) {
+func (b *CommandBuilder) Execute(exectutor Executor) (*Result, error) {
 	return b.Build().Execute(exectutor)
 }
 
-func (b *commandBuilder) ExecuteContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
+func (b *CommandBuilder) ExecuteContext(ctx context.Context, exectutor WithContextExectutor) (*Result, error) {
 	return b.Build().ExecuteContext(ctx, exectutor)
 }
 
-func (b *commandBuilder) finalColumns() []Template {
+func (b *CommandBuilder) finalColumns() []Template {
 	var includedColumns []Template
 	if len(b.include) > 0 {
 		for _, column := range b.columns {
