@@ -204,7 +204,7 @@ func (b *QueryBuilder) As(alias string) Template {
 func (b *QueryBuilder) Build() Template {
 	columns := b.finalColumns()
 	if len(columns) == 0 {
-		return Template{}
+		columns = []Template{NewTemplate("*")}
 	}
 
 	result := Template{}
@@ -294,8 +294,8 @@ func (b *QueryBuilder) QuerySelectStruct(ctx context.Context, db DB, structPtr i
 	return b.QueryStruct(ctx, db, structPtr)
 }
 
-func (b *QueryBuilder) QuerySelectStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
-	typo := reflect.TypeOf(structPtr)
+func (b *QueryBuilder) QuerySelectStructSlice(ctx context.Context, db DB, structSlicePtr interface{}) error {
+	typo := reflect.TypeOf(structSlicePtr)
 	for typo.Kind() == reflect.Ptr {
 		typo = typo.Elem()
 	}
@@ -303,7 +303,7 @@ func (b *QueryBuilder) QuerySelectStructSlice(ctx context.Context, db DB, struct
 		return errors.New("bear: require struct slice")
 	}
 	b.StructColumns(reflect.New(typo.Elem()).Elem().Interface())
-	return b.QueryStructSlice(ctx, db, structPtr)
+	return b.QueryStructSlice(ctx, db, structSlicePtr)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {
