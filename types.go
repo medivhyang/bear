@@ -24,7 +24,7 @@ var (
 type structField struct {
 	index int
 	name  string
-	typo  string
+	typo  reflect.Type
 	tag   map[string]string
 }
 
@@ -86,7 +86,7 @@ func structFields(typo reflect.Type) structFieldSlice {
 		item := structField{
 			index: i,
 			name:  field.Name,
-			typo:  field.Type.String(),
+			typo:  field.Type,
 			tag:   tag,
 		}
 		result = append(result, item)

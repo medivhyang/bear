@@ -1,10 +1,9 @@
 package sqlite3
 
 import (
-	"strings"
-
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/medivhyang/bear"
+	"reflect"
 )
 
 func init() {
@@ -13,20 +12,24 @@ func init() {
 
 type dialect struct{}
 
-func (d dialect) TypeMapping(goType string) string {
-	goType = strings.TrimPrefix(strings.TrimSpace(goType), "*")
-	switch goType {
-	case "int8", "int16", "int32", "int64",
-		"uint", "uint8", "uint16", "uint32", "uint64",
-		"int", "rune", "byte", "bool":
+func (d dialect) TypeMapping(t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Int, reflect.Bool:
 		return "integer"
-	case "float32", "float64":
+	case reflect.Float32, reflect.Float64:
 		return "real"
-	case "string":
+	case reflect.String:
 		return "text"
-	case "time.Time":
-		return "datetime"
 	default:
+		switch t.String() {
+		case "time.Time":
+			return "datetime"
+		}
 		return ""
 	}
 }

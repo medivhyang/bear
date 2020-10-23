@@ -1,11 +1,12 @@
 package bear
 
 import (
+	"reflect"
 	"sync"
 )
 
 type Dialect interface {
-	TypeMapping(goType string) string
+	TypeMapping(t reflect.Type) string
 }
 
 var dialects sync.Map
