@@ -92,7 +92,7 @@ func BatchDropTable(tables []string, onExists bool, dialect ...string) Template 
 	}
 	var result Template
 	for _, table := range tables {
-		result.Join(NewTableBuilder().DropTable(table).OnExists(onExists).Dialect(finalDialect).Build())
+		result = result.Join(NewTableBuilder().DropTable(table).OnExists(onExists).Dialect(finalDialect).Build())
 	}
 	return result
 }
