@@ -177,14 +177,14 @@ func (t Template) String() string {
 	if len(t.Values) == 0 {
 		return buffer.String()
 	}
-	buffer.WriteString(" <= ")
-	buffer.WriteString("{")
+	buffer.WriteString(": ")
+	buffer.WriteString("[")
 	for index, value := range t.Values {
 		if index > 0 {
 			buffer.WriteString(", ")
 		}
 		buffer.WriteString(fmt.Sprintf("%#v", value))
 	}
-	buffer.WriteString("}")
+	buffer.WriteString("]")
 	return buffer.String()
 }
