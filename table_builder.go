@@ -70,11 +70,11 @@ func BatchCreateTable(tables []Table, onNotExists bool, dialect ...string) Templ
 }
 
 func BatchCreateTableStruct(structs map[string]interface{}, onNotExists bool, dialect ...string) Template {
-	var result Template
 	finalDialect := ""
 	if len(dialect) > 0 {
 		finalDialect = dialect[0]
 	}
+	var result Template
 	for table, aStruct := range structs {
 		result = result.Join(CreateTableStruct(table, aStruct).OnNotExists(onNotExists).Dialect(finalDialect).Build())
 	}
@@ -83,6 +83,18 @@ func BatchCreateTableStruct(structs map[string]interface{}, onNotExists bool, di
 
 func DropTable(table string) *TableBuilder {
 	return NewTableBuilder().DropTable(table)
+}
+
+func BatchDropTable(tables []string, dialect ...string) Template {
+	finalDialect := ""
+	if len(dialect) > 0 {
+		finalDialect = dialect[0]
+	}
+	var result Template
+	for _, table := range tables {
+		result.Join(NewTableBuilder().DropTable(table).OnExists(true).Dialect(finalDialect).Build())
+	}
+	return result
 }
 
 func (b *TableBuilder) CreateTable(table string, columns []Column) *TableBuilder {
