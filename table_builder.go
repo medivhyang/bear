@@ -85,14 +85,14 @@ func DropTable(table string) *TableBuilder {
 	return NewTableBuilder().DropTable(table)
 }
 
-func BatchDropTable(tables []string, dialect ...string) Template {
+func BatchDropTable(tables []string, onExists bool, dialect ...string) Template {
 	finalDialect := ""
 	if len(dialect) > 0 {
 		finalDialect = dialect[0]
 	}
 	var result Template
 	for _, table := range tables {
-		result.Join(NewTableBuilder().DropTable(table).OnExists(true).Dialect(finalDialect).Build())
+		result.Join(NewTableBuilder().DropTable(table).OnExists(onExists).Dialect(finalDialect).Build())
 	}
 	return result
 }
