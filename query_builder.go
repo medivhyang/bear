@@ -2,7 +2,6 @@ package bear
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -31,36 +30,12 @@ func NewQueryBuilder(dialect ...string) *QueryBuilder {
 	return b
 }
 
-func Select(table string, columns ...string) *QueryBuilder {
-	return NewQueryBuilder().Select(table, columns...)
+func Select(table string, columns ...interface{}) *QueryBuilder {
+	return NewQueryBuilder().Select(table, columns)
 }
 
-func SelectTemplate(table string, columns ...Template) *QueryBuilder {
-	return NewQueryBuilder().SelectTemplate(table, columns...)
-}
-
-func SelectStruct(table string, aStruct interface{}) *QueryBuilder {
-	return NewQueryBuilder().SelectStruct(table, aStruct)
-}
-
-func SelectWhereStruct(table string, aStruct interface{}) *QueryBuilder {
-	return NewQueryBuilder().SelectWhereStruct(table, aStruct)
-}
-
-func (b *QueryBuilder) Select(table string, columns ...string) *QueryBuilder {
-	return b.Table(table).Columns(columns...)
-}
-
-func (b *QueryBuilder) SelectTemplate(table string, columns ...Template) *QueryBuilder {
-	return b.Table(table).TemplateColumns(columns...)
-}
-
-func (b *QueryBuilder) SelectStruct(table string, aStruct interface{}) *QueryBuilder {
-	return b.Table(table).StructColumns(aStruct)
-}
-
-func (b *QueryBuilder) SelectWhereStruct(table string, aStruct interface{}, includeZeroValue ...bool) *QueryBuilder {
-	return b.Table(table).StructColumns(aStruct).WhereStruct(aStruct, includeZeroValue...)
+func (b *QueryBuilder) Select(table string, columns ...interface{}) *QueryBuilder {
+	return b.Table(table).Columns(columns)
 }
 
 func (b *QueryBuilder) Dialect(name string) *QueryBuilder {
@@ -78,24 +53,80 @@ func (b *QueryBuilder) Distinct(value bool) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Columns(columns ...string) *QueryBuilder {
-	for _, column := range columns {
-		b.columns = append(b.columns, NewTemplate(column))
+func (b *QueryBuilder) Columns(args ...interface{}) *QueryBuilder {
+	if args == nil {
+		return b
 	}
-	return b
-}
-
-func (b *QueryBuilder) TemplateColumns(columns ...Template) *QueryBuilder {
-	b.columns = append(b.columns, columns...)
-	return b
-}
-
-func (b *QueryBuilder) StructColumns(aStruct interface{}) *QueryBuilder {
-	names := structFields(reflect.TypeOf(aStruct)).columnNames()
-	for _, name := range names {
-		b.columns = append(b.columns, NewTemplate(name))
+	first := args[0]
+	firstValue := reflect.ValueOf(args)
+	for firstValue.Kind() == reflect.Ptr {
+		firstValue = firstValue.Elem()
 	}
-	return b
+	switch firstValue.Kind() {
+	case reflect.Struct:
+		names := structFields(reflect.TypeOf(args)).columnNames()
+		for _, name := range names {
+			b.columns = append(b.columns, NewTemplate(name))
+		}
+	case reflect.Slice, reflect.Array:
+		var items []interface{}
+		for i := 0; i < firstValue.Len(); i++ {
+			items = append(items, firstValue.Index(i).Interface())
+		}
+		if len(items) == 0 {
+			return b
+		}
+		switch first := items[0].(type) {
+		case string:
+			columns := []string{first}
+			for _, arg := range items[1:] {
+				v, ok := arg.(string)
+				if !ok {
+					panic("bear: columns: invalid args type")
+				}
+				columns = append(columns, v)
+			}
+			for _, column := range columns {
+				b.columns = append(b.columns, NewTemplate(column))
+			}
+		case Template:
+			templates := []Template{first}
+			for _, arg := range items[1:] {
+				v, ok := arg.(Template)
+				if !ok {
+					panic("bear: columns: invalid args type")
+				}
+				templates = append(templates, v)
+			}
+			b.columns = append(b.columns, templates...)
+		}
+	default:
+		switch first := first.(type) {
+		case string:
+			columns := []string{first}
+			for _, arg := range args {
+				v, ok := arg.(string)
+				if !ok {
+					panic("bear: condition columns: invalid args type")
+				}
+				columns = append(columns, v)
+			}
+			for _, column := range columns {
+				b.columns = append(b.columns, NewTemplate(column))
+			}
+		case Template:
+			columns := []Template{first}
+			for _, arg := range args {
+				v, ok := arg.(Template)
+				if !ok {
+					panic("bear: condition columns: invalid args type")
+				}
+				columns = append(columns, v)
+			}
+			b.columns = append(b.columns, columns...)
+		}
+	}
+	panic("bear: condition columns: invalid args type")
 }
 
 func (b *QueryBuilder) Include(names ...string) *QueryBuilder {
@@ -118,53 +149,35 @@ func (b *QueryBuilder) Exclude(names ...string) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Join(format string, values ...interface{}) *QueryBuilder {
-	b.joins = append(b.joins, Template{Format: format, Values: values})
+func (b *QueryBuilder) Join(args ...interface{}) *QueryBuilder {
+	if len(args) == 0 {
+		return b
+	}
+	switch first := args[0].(type) {
+	case string:
+		format, values := first, args[1:]
+		b.joins = append(b.joins, NewTemplate(format, values...))
+	case Template:
+		var templates []Template
+		for _, arg := range args {
+			v, ok := arg.(Template)
+			if !ok {
+				panic("bear: join: invalid args")
+			}
+			templates = append(templates, v)
+		}
+		b.joins = append(b.joins, templates...)
+	}
 	return b
 }
 
-func (b *QueryBuilder) JoinTemplate(templates ...Template) *QueryBuilder {
-	b.joins = append(b.joins, templates...)
+func (b *QueryBuilder) Where(args ...interface{}) *QueryBuilder {
+	b.where = b.where.Append(args...)
 	return b
 }
 
-func (b *QueryBuilder) Where(format string, values ...interface{}) *QueryBuilder {
-	b.where = b.where.AppendTemplate(NewTemplate(format, values...))
-	return b
-}
-
-func (b *QueryBuilder) WhereTemplate(templates ...Template) *QueryBuilder {
-	b.where = b.where.AppendTemplate(templates...)
-	return b
-}
-
-func (b *QueryBuilder) WhereMap(m map[string]interface{}) *QueryBuilder {
-	b.where = b.where.AppendMap(m)
-	return b
-}
-
-func (b *QueryBuilder) WhereStruct(i interface{}, includeZeroValue ...bool) *QueryBuilder {
-	b.where = b.where.AppendStruct(i, includeZeroValue...)
-	return b
-}
-
-func (b *QueryBuilder) Having(format string, values ...interface{}) *QueryBuilder {
-	b.having.AppendTemplate(Template{Format: format, Values: values})
-	return b
-}
-
-func (b *QueryBuilder) HavingTemplate(templates ...Template) *QueryBuilder {
-	b.having.AppendTemplate(templates...)
-	return b
-}
-
-func (b *QueryBuilder) HavingMap(m map[string]interface{}) *QueryBuilder {
-	b.where.AppendMap(m)
-	return b
-}
-
-func (b *QueryBuilder) HavingStruct(i interface{}) *QueryBuilder {
-	b.where.AppendStruct(i)
+func (b *QueryBuilder) Having(args ...interface{}) *QueryBuilder {
+	b.having.Append(args...)
 	return b
 }
 
@@ -287,23 +300,6 @@ func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, structPtr interfa
 
 func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
 	return b.Build().QueryStructSlice(ctx, db, structPtr)
-}
-
-func (b *QueryBuilder) QuerySelectStruct(ctx context.Context, db DB, structPtr interface{}) error {
-	b.StructColumns(structPtr)
-	return b.QueryStruct(ctx, db, structPtr)
-}
-
-func (b *QueryBuilder) QuerySelectStructSlice(ctx context.Context, db DB, structSlicePtr interface{}) error {
-	typo := reflect.TypeOf(structSlicePtr)
-	for typo.Kind() == reflect.Ptr {
-		typo = typo.Elem()
-	}
-	if typo.Kind() != reflect.Slice {
-		return errors.New("bear: require struct slice")
-	}
-	b.StructColumns(reflect.New(typo.Elem()).Elem().Interface())
-	return b.QueryStructSlice(ctx, db, structSlicePtr)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {

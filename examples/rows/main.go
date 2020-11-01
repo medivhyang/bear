@@ -81,7 +81,7 @@ func openSqlite3(filename string) (*sql.DB, error) {
 }
 
 func demoMapSlice(db *sql.DB) {
-	rows, err := bear.SelectStruct("user", user{}).Query(db)
+	rows, err := bear.Select("user", user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +95,7 @@ func demoMapSlice(db *sql.DB) {
 }
 
 func demoMap(db *sql.DB) {
-	rows, err := bear.SelectStruct("user", user{}).Query(db)
+	rows, err := bear.Select("user", user{}).Query(db)
 	if err != nil {
 		panic(err)
 	}

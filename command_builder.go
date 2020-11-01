@@ -153,22 +153,22 @@ func (b *CommandBuilder) Exclude(names ...string) *CommandBuilder {
 }
 
 func (b *CommandBuilder) Where(format string, values ...interface{}) *CommandBuilder {
-	b.where = b.where.AppendTemplate(Template{Format: format, Values: values})
+	b.where = b.where.appendTemplate(Template{Format: format, Values: values})
 	return b
 }
 
 func (b *CommandBuilder) WhereTemplate(templates ...Template) *CommandBuilder {
-	b.where = b.where.AppendTemplate(templates...)
+	b.where = b.where.appendTemplate(templates...)
 	return b
 }
 
 func (b *CommandBuilder) WhereMap(m map[string]interface{}) *CommandBuilder {
-	b.where = b.where.AppendMap(m)
+	b.where = b.where.appendMap(m)
 	return b
 }
 
 func (b *CommandBuilder) WhereStruct(aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
-	b.where = b.where.AppendStruct(aStruct, includeZeroValue...)
+	b.where = b.where.appendStruct(aStruct, includeZeroValue...)
 	return b
 }
 
