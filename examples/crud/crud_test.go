@@ -22,7 +22,7 @@ func ExampleSelect() {
 }
 
 func ExampleSelectStruct() {
-	t := bear.SelectStruct("user", user{}).Where("id = ?", 1).Build()
+	t := bear.Select("user", user{}).Where("id = ?", 1).Build()
 	fmt.Println(t)
 
 	// Output:
