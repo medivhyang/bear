@@ -5,17 +5,8 @@ type WithTable struct {
 	table   string
 }
 
-func Dialect(name string) *WithTable {
-	return &WithTable{dialect: name}
-}
-
 func Table(name string) *WithTable {
 	return &WithTable{table: name}
-}
-
-func (t *WithTable) Dialect(name string) *WithTable {
-	t.dialect = name
-	return t
 }
 
 func (t *WithTable) Table(name string) *WithTable {
