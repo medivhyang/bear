@@ -82,7 +82,7 @@ func (b *QueryBuilder) TemplateColumns(columns ...Template) *QueryBuilder {
 }
 
 func (b *QueryBuilder) StructColumns(aStruct interface{}) *QueryBuilder {
-	names := structFields(reflect.TypeOf(aStruct)).columnNames()
+	names := getStructFields(reflect.TypeOf(aStruct)).columnNames()
 	for _, name := range names {
 		b.columns = append(b.columns, NewTemplate(name))
 	}

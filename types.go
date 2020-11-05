@@ -61,7 +61,7 @@ type structFieldSlice []structField
 
 var structFieldsCache = sync.Map{}
 
-func structFields(typo reflect.Type) structFieldSlice {
+func getStructFields(typo reflect.Type) structFieldSlice {
 	for typo.Kind() == reflect.Ptr {
 		typo = typo.Elem()
 	}
@@ -178,7 +178,7 @@ func trStructToColumns(structValue reflect.Value, includeZeroValue bool) map[str
 	if structValue.Kind() != reflect.Struct {
 		panic("bear: get column value map from struct: require struct type")
 	}
-	fields := structFields(structValue.Type())
+	fields := getStructFields(structValue.Type())
 	result := map[string]interface{}{}
 	for i := 0; i < structValue.NumField(); i++ {
 		field, ok := fields.getByFieldIndex(i)

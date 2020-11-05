@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+type TableSchema struct {
+	Name    string
+	Columns []ColumnSchema
+}
+
+type ColumnSchema struct {
+	Name   string
+	Type   string
+	Suffix string
+}
+
 type TableAction string
 
 const (
@@ -54,7 +65,7 @@ func CreateTable(table string, columns []ColumnSchema) *TableBuilder {
 }
 
 func CreateTableStruct(table string, aStruct interface{}) *TableBuilder {
-	return NewTableBuilder().CreateTableStruct(table, aStruct)
+	return NewTableBuilder().CreateTableWithStruct(table, aStruct)
 }
 
 func BatchCreateTable(tables []TableSchema, onNotExists bool, dialect ...string) Template {
@@ -69,7 +80,7 @@ func BatchCreateTable(tables []TableSchema, onNotExists bool, dialect ...string)
 	return result
 }
 
-func BatchCreateTableStruct(structs map[string]interface{}, onNotExists bool, dialect ...string) Template {
+func BatchCreateTableWithStruct(structs map[string]interface{}, onNotExists bool, dialect ...string) Template {
 	finalDialect := ""
 	if len(dialect) > 0 {
 		finalDialect = dialect[0]
@@ -101,7 +112,7 @@ func (b *TableBuilder) CreateTable(table string, columns []ColumnSchema) *TableB
 	return b.Action(TableActionCreateTable).Table(table).Columns(columns)
 }
 
-func (b *TableBuilder) CreateTableStruct(table string, aStruct interface{}) *TableBuilder {
+func (b *TableBuilder) CreateTableWithStruct(table string, aStruct interface{}) *TableBuilder {
 	return b.Action(TableActionCreateTable).Table(table).StructColumns(aStruct)
 }
 
@@ -130,7 +141,7 @@ func (b *TableBuilder) Columns(columns []ColumnSchema) *TableBuilder {
 }
 
 func (b *TableBuilder) StructColumns(aStruct interface{}) *TableBuilder {
-	b.columns = append(b.columns, structFields(reflect.TypeOf(aStruct)).columns(b.dialect)...)
+	b.columns = append(b.columns, getStructFields(reflect.TypeOf(aStruct)).columns(b.dialect)...)
 	return b
 }
 
@@ -323,15 +334,4 @@ func (b *TableBuilder) finalColumns() []ColumnSchema {
 		excludedColumns = includedColumns
 	}
 	return excludedColumns
-}
-
-type TableSchema struct {
-	Name    string
-	Columns []ColumnSchema
-}
-
-type ColumnSchema struct {
-	Name   string
-	Type   string
-	Suffix string
 }
