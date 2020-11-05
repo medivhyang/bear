@@ -2,7 +2,6 @@ package bear
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -43,10 +42,6 @@ func SelectStruct(table string, aStruct interface{}) *QueryBuilder {
 	return NewQueryBuilder().SelectStruct(table, aStruct)
 }
 
-func SelectWhereStruct(table string, aStruct interface{}) *QueryBuilder {
-	return NewQueryBuilder().SelectWhereStruct(table, aStruct)
-}
-
 func (b *QueryBuilder) Select(table string, columns ...string) *QueryBuilder {
 	return b.Table(table).Columns(columns...)
 }
@@ -57,10 +52,6 @@ func (b *QueryBuilder) SelectTemplate(table string, columns ...Template) *QueryB
 
 func (b *QueryBuilder) SelectStruct(table string, aStruct interface{}) *QueryBuilder {
 	return b.Table(table).StructColumns(aStruct)
-}
-
-func (b *QueryBuilder) SelectWhereStruct(table string, aStruct interface{}, includeZeroValue ...bool) *QueryBuilder {
-	return b.Table(table).StructColumns(aStruct).WhereStruct(aStruct, includeZeroValue...)
 }
 
 func (b *QueryBuilder) Dialect(name string) *QueryBuilder {
@@ -123,18 +114,18 @@ func (b *QueryBuilder) Join(format string, values ...interface{}) *QueryBuilder 
 	return b
 }
 
-func (b *QueryBuilder) JoinTemplate(templates ...Template) *QueryBuilder {
+func (b *QueryBuilder) JoinTemplates(templates ...Template) *QueryBuilder {
 	b.joins = append(b.joins, templates...)
 	return b
 }
 
 func (b *QueryBuilder) Where(format string, values ...interface{}) *QueryBuilder {
-	b.where = b.where.AppendTemplate(NewTemplate(format, values...))
+	b.where = b.where.AppendTemplates(NewTemplate(format, values...))
 	return b
 }
 
-func (b *QueryBuilder) WhereTemplate(templates ...Template) *QueryBuilder {
-	b.where = b.where.AppendTemplate(templates...)
+func (b *QueryBuilder) WhereTemplates(templates ...Template) *QueryBuilder {
+	b.where = b.where.AppendTemplates(templates...)
 	return b
 }
 
@@ -143,18 +134,18 @@ func (b *QueryBuilder) WhereMap(m map[string]interface{}) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) WhereStruct(i interface{}, includeZeroValue ...bool) *QueryBuilder {
-	b.where = b.where.AppendStruct(i, includeZeroValue...)
+func (b *QueryBuilder) WhereStruct(i interface{}, includeZeroValue bool) *QueryBuilder {
+	b.where = b.where.AppendStruct(i, includeZeroValue)
 	return b
 }
 
 func (b *QueryBuilder) Having(format string, values ...interface{}) *QueryBuilder {
-	b.having.AppendTemplate(Template{Format: format, Values: values})
+	b.having.AppendTemplates(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *QueryBuilder) HavingTemplate(templates ...Template) *QueryBuilder {
-	b.having.AppendTemplate(templates...)
+func (b *QueryBuilder) HavingTemplates(templates ...Template) *QueryBuilder {
+	b.having.AppendTemplates(templates...)
 	return b
 }
 
@@ -163,8 +154,8 @@ func (b *QueryBuilder) HavingMap(m map[string]interface{}) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) HavingStruct(i interface{}) *QueryBuilder {
-	b.where.AppendStruct(i)
+func (b *QueryBuilder) HavingStruct(aStruct interface{}, includeZeroValues bool) *QueryBuilder {
+	b.where.AppendStruct(aStruct, includeZeroValues)
 	return b
 }
 
@@ -287,23 +278,6 @@ func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, structPtr interfa
 
 func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
 	return b.Build().QueryStructSlice(ctx, db, structPtr)
-}
-
-func (b *QueryBuilder) QuerySelectStruct(ctx context.Context, db DB, structPtr interface{}) error {
-	b.StructColumns(structPtr)
-	return b.QueryStruct(ctx, db, structPtr)
-}
-
-func (b *QueryBuilder) QuerySelectStructSlice(ctx context.Context, db DB, structSlicePtr interface{}) error {
-	typo := reflect.TypeOf(structSlicePtr)
-	for typo.Kind() == reflect.Ptr {
-		typo = typo.Elem()
-	}
-	if typo.Kind() != reflect.Slice {
-		return errors.New("bear: require struct slice")
-	}
-	b.StructColumns(reflect.New(typo.Elem()).Elem().Interface())
-	return b.QueryStructSlice(ctx, db, structSlicePtr)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {

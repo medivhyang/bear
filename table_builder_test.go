@@ -3,7 +3,7 @@ package bear
 import "fmt"
 
 func ExampleTableBuilderIncludeAndExclude() {
-	s := CreateTable("user", []Column{
+	s := CreateTable("user", []ColumnSchema{
 		{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
 		{Name: "name", Type: "varchar(512)", Suffix: "not null"},
 		{Name: "created", Type: "bigint", Suffix: "not null"},
@@ -20,7 +20,7 @@ func ExampleTableBuilderIncludeAndExclude() {
 }
 
 func ExampleTableBuilderAppendAndPrepend() {
-	s := CreateTable("user", []Column{
+	s := CreateTable("user", []ColumnSchema{
 		{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
 		{Name: "name", Type: "varchar(512)", Suffix: "not null"},
 		{Name: "created", Type: "bigint", Suffix: "not null"},

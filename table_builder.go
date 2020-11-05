@@ -27,7 +27,7 @@ type TableBuilder struct {
 	action        TableAction
 	dialect       string
 	table         string
-	columns       []Column
+	columns       []ColumnSchema
 	include       map[string]bool
 	exclude       map[string]bool
 	prepends      []Template
@@ -49,7 +49,7 @@ func NewTableBuilder(dialect ...string) *TableBuilder {
 	return b
 }
 
-func CreateTable(table string, columns []Column) *TableBuilder {
+func CreateTable(table string, columns []ColumnSchema) *TableBuilder {
 	return NewTableBuilder().CreateTable(table, columns)
 }
 
@@ -57,7 +57,7 @@ func CreateTableStruct(table string, aStruct interface{}) *TableBuilder {
 	return NewTableBuilder().CreateTableStruct(table, aStruct)
 }
 
-func BatchCreateTable(tables []Table, onNotExists bool, dialect ...string) Template {
+func BatchCreateTable(tables []TableSchema, onNotExists bool, dialect ...string) Template {
 	var result Template
 	finalDialect := ""
 	if len(dialect) > 0 {
@@ -97,7 +97,7 @@ func BatchDropTable(tables []string, onExists bool, dialect ...string) Template 
 	return result
 }
 
-func (b *TableBuilder) CreateTable(table string, columns []Column) *TableBuilder {
+func (b *TableBuilder) CreateTable(table string, columns []ColumnSchema) *TableBuilder {
 	return b.Action(TableActionCreateTable).Table(table).Columns(columns)
 }
 
@@ -124,7 +124,7 @@ func (b *TableBuilder) Table(name string) *TableBuilder {
 	return b
 }
 
-func (b *TableBuilder) Columns(columns []Column) *TableBuilder {
+func (b *TableBuilder) Columns(columns []ColumnSchema) *TableBuilder {
 	b.columns = append(b.columns, columns...)
 	return b
 }
@@ -301,8 +301,8 @@ func (b *TableBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, erro
 	return b.Build().ExecuteContext(ctx, db)
 }
 
-func (b *TableBuilder) finalColumns() []Column {
-	var includedColumns []Column
+func (b *TableBuilder) finalColumns() []ColumnSchema {
+	var includedColumns []ColumnSchema
 	if len(b.include) > 0 {
 		for _, column := range b.columns {
 			if b.include[column.Name] {
@@ -312,7 +312,7 @@ func (b *TableBuilder) finalColumns() []Column {
 	} else {
 		includedColumns = b.columns
 	}
-	var excludedColumns []Column
+	var excludedColumns []ColumnSchema
 	if len(b.exclude) > 0 {
 		for _, column := range includedColumns {
 			if !b.exclude[column.Name] {
@@ -325,12 +325,12 @@ func (b *TableBuilder) finalColumns() []Column {
 	return excludedColumns
 }
 
-type Table struct {
+type TableSchema struct {
 	Name    string
-	Columns []Column
+	Columns []ColumnSchema
 }
 
-type Column struct {
+type ColumnSchema struct {
 	Name   string
 	Type   string
 	Suffix string

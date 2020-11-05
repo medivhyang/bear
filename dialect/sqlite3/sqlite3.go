@@ -12,7 +12,7 @@ func init() {
 
 type dialect struct{}
 
-func (d dialect) TypeMapping(t reflect.Type) string {
+func (d dialect) TranslateGoType(t reflect.Type) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}

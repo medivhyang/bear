@@ -61,7 +61,7 @@ func ExampleInsertStruct() {
 		ID:      1,
 		Name:    "bob",
 		Created: time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC).Unix(),
-	}).Build()
+	}, true).Build()
 	fmt.Println(t)
 
 	// Output:
@@ -79,7 +79,7 @@ func ExampleUpdate() {
 }
 
 func ExampleUpdateStruct() {
-	t := bear.UpdateStruct("user", user{Name: "new alice"}).
+	t := bear.UpdateStruct("user", user{Name: "new alice"}, true).
 		Where("id = ?", 1).
 		Build()
 	fmt.Println(t)

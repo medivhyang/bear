@@ -7,7 +7,7 @@ import (
 
 func ExampleExprEqual() {
 	t := bear.Select("user", "id", "name", "age").
-		WhereTemplate(GreaterEqual("id", 1)).
+		WhereTemplates(GreaterEqual("id", 1)).
 		Build()
 	fmt.Println(t)
 
@@ -17,7 +17,7 @@ func ExampleExprEqual() {
 
 func ExampleExprIn() {
 	t := bear.Select("user", "id", "name", "age").
-		WhereTemplate(In("id", []int{1, 2, 3})).
+		WhereTemplates(In("id", []int{1, 2, 3})).
 		Build()
 	fmt.Println(t)
 
@@ -27,9 +27,9 @@ func ExampleExprIn() {
 
 func ExampleExprInSubQuery() {
 	t := bear.Select("user", "id", "name", "age").
-		WhereTemplate(In("id",
+		WhereTemplates(In("id",
 			bear.Select("group", "user_id").
-				WhereTemplate(Equal("id", 1)).
+				WhereTemplates(Equal("id", 1)).
 				Build(),
 		)).
 		Build()
@@ -41,7 +41,7 @@ func ExampleExprInSubQuery() {
 
 func ExampleExprBetween() {
 	t := bear.Select("user", "id", "name", "age").
-		WhereTemplate(Between("age", 20, 30)).
+		WhereTemplates(Between("age", 20, 30)).
 		Build()
 	fmt.Println(t)
 

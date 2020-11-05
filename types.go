@@ -6,10 +6,6 @@ import (
 	"sync"
 )
 
-type TableNamer interface {
-	TableName() string
-}
-
 var (
 	TagKey               = "bear"
 	TagItemSeparator     = ","
@@ -28,37 +24,37 @@ type structField struct {
 	tag   map[string]string
 }
 
-func (field structField) column(dialect string) (Column, bool) {
-	result := Column{}
-	name := field.columnName()
+func (f structField) column(dialect string) (ColumnSchema, bool) {
+	result := ColumnSchema{}
+	name := f.columnName()
 	if name == "" {
 		return result, false
 	}
 	result.Name = name
-	if typo := field.tag[TagNestedKeyTypeName]; typo != "" {
+	if typo := f.tag[TagNestedKeyTypeName]; typo != "" {
 		result.Type = typo
 	} else {
 		if d := getDialect(dialect); d != nil {
-			result.Type = d.TypeMapping(field.typo)
+			result.Type = d.TranslateGoType(f.typo)
 		}
 	}
 	if result.Type == "" {
 		return result, false
 	}
-	if suffix := field.tag[TagNestedKeySuffixName]; suffix != "" {
+	if suffix := f.tag[TagNestedKeySuffixName]; suffix != "" {
 		result.Suffix = suffix
 	}
 	return result, true
 }
 
-func (field structField) columnName() string {
-	if _, ok := field.tag[TagNestedKeyIgnore]; ok {
+func (f structField) columnName() string {
+	if _, ok := f.tag[TagNestedKeyIgnore]; ok {
 		return ""
 	}
-	if v := field.tag[TagNestedKeyColumnName]; v != "" {
+	if v := f.tag[TagNestedKeyColumnName]; v != "" {
 		return v
 	}
-	return toSnake(field.name)
+	return toSnake(f.name)
 }
 
 type structFieldSlice []structField
@@ -97,8 +93,8 @@ func structFields(typo reflect.Type) structFieldSlice {
 	return result
 }
 
-func (fields structFieldSlice) findFieldByFieldIndex(index int) (*structField, bool) {
-	for _, field := range fields {
+func (slice structFieldSlice) getByFieldIndex(index int) (*structField, bool) {
+	for _, field := range slice {
 		if field.index == index {
 			return &field, true
 		}
@@ -106,8 +102,8 @@ func (fields structFieldSlice) findFieldByFieldIndex(index int) (*structField, b
 	return nil, false
 }
 
-func (fields structFieldSlice) findFieldByColumnName(name string) (*structField, bool) {
-	for _, field := range fields {
+func (slice structFieldSlice) getByColumnName(name string) (*structField, bool) {
+	for _, field := range slice {
 		if _, ok := field.tag[TagNestedKeyIgnore]; ok {
 			continue
 		}
@@ -115,7 +111,7 @@ func (fields structFieldSlice) findFieldByColumnName(name string) (*structField,
 			return &field, true
 		}
 	}
-	for _, field := range fields {
+	for _, field := range slice {
 		if toSnake(field.name) == name {
 			return &field, true
 		}
@@ -123,17 +119,17 @@ func (fields structFieldSlice) findFieldByColumnName(name string) (*structField,
 	return nil, false
 }
 
-func (fields structFieldSlice) findFieldIndexByColumnName(name string) (int, bool) {
-	field, ok := fields.findFieldByColumnName(name)
+func (slice structFieldSlice) getFieldIndexByColumnName(name string) (int, bool) {
+	field, ok := slice.getByColumnName(name)
 	if ok {
 		return field.index, true
 	}
 	return -1, false
 }
 
-func (fields structFieldSlice) columns(dialect string) []Column {
-	var result []Column
-	for _, field := range fields {
+func (slice structFieldSlice) columns(dialect string) []ColumnSchema {
+	var result []ColumnSchema
+	for _, field := range slice {
 		if c, ok := field.column(dialect); ok {
 			result = append(result, c)
 		}
@@ -141,9 +137,9 @@ func (fields structFieldSlice) columns(dialect string) []Column {
 	return result
 }
 
-func (fields structFieldSlice) columnNames() []string {
+func (slice structFieldSlice) columnNames() []string {
 	var result []string
-	for _, field := range fields {
+	for _, field := range slice {
 		name := field.columnName()
 		if name != "" {
 			result = append(result, name)
@@ -175,17 +171,17 @@ func parseTag(tag string) map[string]string {
 	return result
 }
 
-func toColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[string]interface{} {
-	for value.Kind() == reflect.Ptr {
-		value = value.Elem()
+func trStructToColumns(structValue reflect.Value, includeZeroValue bool) map[string]interface{} {
+	for structValue.Kind() == reflect.Ptr {
+		structValue = structValue.Elem()
 	}
-	if value.Kind() != reflect.Struct {
+	if structValue.Kind() != reflect.Struct {
 		panic("bear: get column value map from struct: require struct type")
 	}
-	fields := structFields(value.Type())
+	fields := structFields(structValue.Type())
 	result := map[string]interface{}{}
-	for i := 0; i < value.NumField(); i++ {
-		field, ok := fields.findFieldByFieldIndex(i)
+	for i := 0; i < structValue.NumField(); i++ {
+		field, ok := fields.getByFieldIndex(i)
 		if !ok {
 			continue
 		}
@@ -193,7 +189,7 @@ func toColumnValueMapFromStruct(value reflect.Value, includeZeroValue bool) map[
 		if name == "" {
 			continue
 		}
-		fieldReflectValue := value.Field(i)
+		fieldReflectValue := structValue.Field(i)
 		if includeZeroValue || !isZeroValue(fieldReflectValue) {
 			result[name] = fieldReflectValue.Interface()
 		}
@@ -217,15 +213,4 @@ func isZeroValue(value reflect.Value) bool {
 		return value.IsNil()
 	}
 	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
-}
-
-func TableName(i interface{}) string {
-	if tableNamer, ok := i.(TableNamer); ok {
-		return tableNamer.TableName()
-	}
-	typo := reflect.TypeOf(i)
-	for typo.Kind() == reflect.Ptr {
-		typo = typo.Elem()
-	}
-	return toSnake(typo.Name())
 }

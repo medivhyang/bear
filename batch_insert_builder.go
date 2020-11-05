@@ -62,7 +62,7 @@ func (b *BatchInsertBuilder) BatchInsertStruct(table string, structs interface{}
 	}
 	var rows []map[string]interface{}
 	for i := 0; i < v.Len(); i++ {
-		row := toColumnValueMapFromStruct(v.Index(i), true)
+		row := trStructToColumns(v.Index(i), true)
 		rows = append(rows, row)
 	}
 	return BatchInsert(table, rows)

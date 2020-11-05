@@ -46,16 +46,16 @@ func Insert(table string, pairs ...map[string]interface{}) *CommandBuilder {
 	return NewCommandBuilder().Insert(table, pairs...)
 }
 
-func InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
-	return NewCommandBuilder().InsertStruct(table, aStruct, includeZeroValue...)
+func InsertStruct(table string, aStruct interface{}, includeZeroValues bool) *CommandBuilder {
+	return NewCommandBuilder().InsertStruct(table, aStruct, includeZeroValues)
 }
 
 func Update(table string, pairs ...map[string]interface{}) *CommandBuilder {
 	return NewCommandBuilder().Update(table, pairs...)
 }
 
-func UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
-	return NewCommandBuilder().UpdateStruct(table, aStruct, includeZeroValue...)
+func UpdateStruct(table string, aStruct interface{}, includeZeroValues bool) *CommandBuilder {
+	return NewCommandBuilder().UpdateStruct(table, aStruct, includeZeroValues)
 }
 
 func Delete(table string) *CommandBuilder {
@@ -78,8 +78,8 @@ func (b *CommandBuilder) Insert(table string, pairs ...map[string]interface{}) *
 	return b
 }
 
-func (b *CommandBuilder) InsertStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
-	return b.Table(table).Action(CommandActionInsert).SetStruct(aStruct, includeZeroValue...)
+func (b *CommandBuilder) InsertStruct(table string, aStruct interface{}, includeZeroValue bool) *CommandBuilder {
+	return b.Table(table).Action(CommandActionInsert).SetStruct(aStruct, includeZeroValue)
 }
 
 func (b *CommandBuilder) Update(table string, pairs ...map[string]interface{}) *CommandBuilder {
@@ -90,8 +90,8 @@ func (b *CommandBuilder) Update(table string, pairs ...map[string]interface{}) *
 	return b
 }
 
-func (b *CommandBuilder) UpdateStruct(table string, aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
-	return b.Table(table).Action(CommandActionUpdate).SetStruct(aStruct, includeZeroValue...)
+func (b *CommandBuilder) UpdateStruct(table string, aStruct interface{}, includeZeroValue bool) *CommandBuilder {
+	return b.Table(table).Action(CommandActionUpdate).SetStruct(aStruct, includeZeroValue)
 }
 
 func (b *CommandBuilder) Delete(table string) *CommandBuilder {
@@ -120,15 +120,11 @@ func (b *CommandBuilder) SetMap(m map[string]interface{}) *CommandBuilder {
 	return b
 }
 
-func (b *CommandBuilder) SetStruct(aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
+func (b *CommandBuilder) SetStruct(aStruct interface{}, includeZeroValue bool) *CommandBuilder {
 	if aStruct == nil {
 		return b
 	}
-	finalIncludeZeroValue := false
-	if len(includeZeroValue) > 0 {
-		finalIncludeZeroValue = includeZeroValue[0]
-	}
-	m := toColumnValueMapFromStruct(reflect.ValueOf(aStruct), finalIncludeZeroValue)
+	m := trStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
 	return b.SetMap(m)
 }
 
@@ -153,12 +149,12 @@ func (b *CommandBuilder) Exclude(names ...string) *CommandBuilder {
 }
 
 func (b *CommandBuilder) Where(format string, values ...interface{}) *CommandBuilder {
-	b.where = b.where.AppendTemplate(Template{Format: format, Values: values})
+	b.where = b.where.AppendTemplates(Template{Format: format, Values: values})
 	return b
 }
 
-func (b *CommandBuilder) WhereTemplate(templates ...Template) *CommandBuilder {
-	b.where = b.where.AppendTemplate(templates...)
+func (b *CommandBuilder) WhereTemplates(templates ...Template) *CommandBuilder {
+	b.where = b.where.AppendTemplates(templates...)
 	return b
 }
 
@@ -167,8 +163,8 @@ func (b *CommandBuilder) WhereMap(m map[string]interface{}) *CommandBuilder {
 	return b
 }
 
-func (b *CommandBuilder) WhereStruct(aStruct interface{}, includeZeroValue ...bool) *CommandBuilder {
-	b.where = b.where.AppendStruct(aStruct, includeZeroValue...)
+func (b *CommandBuilder) WhereStruct(aStruct interface{}, includeZeroValue bool) *CommandBuilder {
+	b.where = b.where.AppendStruct(aStruct, includeZeroValue)
 	return b
 }
 

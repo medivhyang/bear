@@ -126,12 +126,12 @@ func (r *Rows) Map() (map[string]interface{}, error) {
 }
 
 func (r *Rows) StructSlice(structSlicePtr interface{}) error {
-	structSliceValue := reflect.ValueOf(structSlicePtr)
-	if structSliceValue.Kind() != reflect.Ptr {
+	sliceValue := reflect.ValueOf(structSlicePtr)
+	if sliceValue.Kind() != reflect.Ptr {
 		return errors.New("bear: scan rows to struct slice: require pointer type")
 	}
-	structSliceValue = structSliceValue.Elem()
-	if structSliceValue.Kind() != reflect.Slice {
+	sliceValue = sliceValue.Elem()
+	if sliceValue.Kind() != reflect.Slice {
 		return errors.New("bear: scan rows to struct slice: require slice type")
 	}
 
@@ -142,9 +142,9 @@ func (r *Rows) StructSlice(structSlicePtr interface{}) error {
 	values := make([]interface{}, len(columns))
 
 	for r.Raw.Next() {
-		structValue := reflect.New(structSliceValue.Type().Elem()).Elem()
+		structValue := reflect.New(sliceValue.Type().Elem()).Elem()
 		for i, column := range columns {
-			if fieldIndex, ok := structFields(structValue.Type()).findFieldIndexByColumnName(column); ok {
+			if fieldIndex, ok := structFields(structValue.Type()).getFieldIndexByColumnName(column); ok {
 				values[i] = structValue.Field(fieldIndex).Addr().Interface()
 			} else {
 				var a interface{}
@@ -154,7 +154,7 @@ func (r *Rows) StructSlice(structSlicePtr interface{}) error {
 		if err := r.Raw.Scan(values...); err != nil {
 			return err
 		}
-		structSliceValue.Set(reflect.Append(structSliceValue, structValue))
+		sliceValue.Set(reflect.Append(sliceValue, structValue))
 	}
 	if err := r.Raw.Close(); err != nil {
 		return err
@@ -176,7 +176,7 @@ func (r *Rows) Struct(structPtr interface{}) error {
 	}
 	values := make([]interface{}, len(columns))
 	for i, column := range columns {
-		if fieldIndex, ok := structFields(structValue.Type()).findFieldIndexByColumnName(column); ok {
+		if fieldIndex, ok := structFields(structValue.Type()).getFieldIndexByColumnName(column); ok {
 			values[i] = structValue.Field(fieldIndex).Addr().Interface()
 		} else {
 			var a interface{}
