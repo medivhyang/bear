@@ -23,8 +23,8 @@ func BatchInsert(table string, rows []map[string]interface{}) *BatchInsertBuilde
 	return NewBatchInsertBuilder().BatchInsert(table, rows)
 }
 
-func BatchInsertStruct(table string, structs interface{}) *BatchInsertBuilder {
-	return NewBatchInsertBuilder().BatchInsertStruct(table, structs)
+func BatchInsertStructs(table string, structs interface{}) *BatchInsertBuilder {
+	return NewBatchInsertBuilder().BatchInsertStructs(table, structs)
 }
 
 func (b *BatchInsertBuilder) BatchInsert(table string, rows []map[string]interface{}) *BatchInsertBuilder {
@@ -49,7 +49,7 @@ func (b *BatchInsertBuilder) BatchInsert(table string, rows []map[string]interfa
 	return result
 }
 
-func (b *BatchInsertBuilder) BatchInsertStruct(table string, structs interface{}) *BatchInsertBuilder {
+func (b *BatchInsertBuilder) BatchInsertStructs(table string, structs interface{}) *BatchInsertBuilder {
 	v := reflect.ValueOf(structs)
 	for v.Kind() == reflect.Ptr {
 		v = v.Elem()

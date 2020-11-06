@@ -31,7 +31,7 @@ func ExampleBatchInsertStruct() {
 		{ID: 4},
 		{},
 	}
-	t := BatchInsertStruct("user", data).Exclude("age").Build()
+	t := BatchInsertStructs("user", data).Exclude("age").Build()
 	fmt.Println(t)
 
 	// Output:

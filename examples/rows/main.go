@@ -33,7 +33,7 @@ func init() {
 		Execute(db); err != nil {
 		panic(err)
 	}
-	if _, err := bear.CreateTableStruct("user", user{}).
+	if _, err := bear.CreateTableWithStruct("user", user{}).
 		OnNotExists().
 		Execute(db); err != nil {
 		panic(err)
@@ -45,7 +45,7 @@ func init() {
 		{ID: 4, Name: "Jason", Age: 33, Role: "teacher", Created: time.Now().Unix()},
 		{ID: 5, Name: "Monica", Age: 34, Role: "teacher", Created: time.Now().Unix()},
 	}
-	if _, err := bear.BatchInsertStruct("user", data).Execute(db); err != nil {
+	if _, err := bear.BatchInsertStructs("user", data).Execute(db); err != nil {
 		panic(err)
 	}
 }

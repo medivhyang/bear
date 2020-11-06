@@ -64,11 +64,11 @@ func CreateTable(table string, columns []ColumnSchema) *TableBuilder {
 	return NewTableBuilder().CreateTable(table, columns)
 }
 
-func CreateTableStruct(table string, aStruct interface{}) *TableBuilder {
+func CreateTableWithStruct(table string, aStruct interface{}) *TableBuilder {
 	return NewTableBuilder().CreateTableWithStruct(table, aStruct)
 }
 
-func BatchCreateTable(tables []TableSchema, onNotExists bool, dialect ...string) Template {
+func BatchCreateTables(tables []TableSchema, onNotExists bool, dialect ...string) Template {
 	var result Template
 	finalDialect := ""
 	if len(dialect) > 0 {
@@ -80,14 +80,14 @@ func BatchCreateTable(tables []TableSchema, onNotExists bool, dialect ...string)
 	return result
 }
 
-func BatchCreateTableWithStruct(structs map[string]interface{}, onNotExists bool, dialect ...string) Template {
+func BatchCreateTablesWithStructs(structs map[string]interface{}, onNotExists bool, dialect ...string) Template {
 	finalDialect := ""
 	if len(dialect) > 0 {
 		finalDialect = dialect[0]
 	}
 	var result Template
 	for table, aStruct := range structs {
-		result = result.Join(CreateTableStruct(table, aStruct).OnNotExists(onNotExists).Dialect(finalDialect).Build())
+		result = result.Join(CreateTableWithStruct(table, aStruct).OnNotExists(onNotExists).Dialect(finalDialect).Build())
 	}
 	return result
 }
@@ -96,7 +96,7 @@ func DropTable(table string) *TableBuilder {
 	return NewTableBuilder().DropTable(table)
 }
 
-func BatchDropTable(tables []string, onExists bool, dialect ...string) Template {
+func BatchDropTables(tables []string, onExists bool, dialect ...string) Template {
 	finalDialect := ""
 	if len(dialect) > 0 {
 		finalDialect = dialect[0]
