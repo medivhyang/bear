@@ -198,5 +198,5 @@ func trStructToColumns(structValue reflect.Value, includeZeroValue bool) map[str
 }
 
 func isZeroValue(value reflect.Value) bool {
-	return value.IsZero()
+	return value.IsNil() || value.IsZero()
 }
