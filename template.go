@@ -67,19 +67,7 @@ func (t Template) Or(other Template) Template {
 	return t.Join(other, " or ")
 }
 
-func (t Template) Query(db DB) (*Rows, error) {
-	if t.IsEmptyOrWhitespace() {
-		return nil, ErrEmptyTemplate
-	}
-	debugf("query: %s\n", t)
-	rows, err := db.Query(t.Format, t.Values...)
-	if err != nil {
-		return nil, err
-	}
-	return WrapRows(rows), nil
-}
-
-func (t Template) QueryContext(ctx context.Context, db DB) (*Rows, error) {
+func (t Template) Query(ctx context.Context, db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
@@ -92,7 +80,7 @@ func (t Template) QueryContext(ctx context.Context, db DB) (*Rows, error) {
 }
 
 func (t Template) QueryScalar(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.QueryContext(ctx, db)
+	rows, err := t.Query(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -100,7 +88,7 @@ func (t Template) QueryScalar(ctx context.Context, db DB, value interface{}) err
 }
 
 func (t Template) QueryScalarSlice(ctx context.Context, db DB, values interface{}) error {
-	rows, err := t.QueryContext(ctx, db)
+	rows, err := t.Query(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -108,7 +96,7 @@ func (t Template) QueryScalarSlice(ctx context.Context, db DB, values interface{
 }
 
 func (t Template) QueryMap(ctx context.Context, db DB) (map[string]interface{}, error) {
-	rows, err := t.QueryContext(ctx, db)
+	rows, err := t.Query(ctx, db)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +104,7 @@ func (t Template) QueryMap(ctx context.Context, db DB) (map[string]interface{}, 
 }
 
 func (t Template) QueryMapSlice(ctx context.Context, db DB) ([]map[string]interface{}, error) {
-	rows, err := t.QueryContext(ctx, db)
+	rows, err := t.Query(ctx, db)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +112,7 @@ func (t Template) QueryMapSlice(ctx context.Context, db DB) ([]map[string]interf
 }
 
 func (t Template) QueryStruct(ctx context.Context, db DB, structPtr interface{}) error {
-	rows, err := t.QueryContext(ctx, db)
+	rows, err := t.Query(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -132,26 +120,14 @@ func (t Template) QueryStruct(ctx context.Context, db DB, structPtr interface{})
 }
 
 func (t Template) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
-	rows, err := t.QueryContext(ctx, db)
+	rows, err := t.Query(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.StructSlice(structPtr)
 }
 
-func (t Template) Execute(db DB) (*Result, error) {
-	if t.IsEmptyOrWhitespace() {
-		return nil, ErrEmptyTemplate
-	}
-	debugf("exec: %s\n", t)
-	result, err := db.Exec(t.Format, t.Values...)
-	if err != nil {
-		return nil, err
-	}
-	return WrapResult(result), nil
-}
-
-func (t Template) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
+func (t Template) Exec(ctx context.Context, db DB) (*Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}

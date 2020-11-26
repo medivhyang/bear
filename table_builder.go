@@ -35,21 +35,21 @@ func (a TableAction) Valid() bool {
 }
 
 type TableBuilder struct {
-	action        TableAction
-	dialect       string
-	table         string
-	columns       []ColumnSchema
-	include       map[string]bool
-	exclude       map[string]bool
-	prepends      []Template
-	appends       []Template
-	innerPrepends []Template
-	innerAppends  []Template
-	newline       bool
-	indent        string
-	prefix        string
-	onExists      bool
-	onNotExists   bool
+	action           TableAction
+	dialect          string
+	table            string
+	columns          []ColumnSchema
+	include          map[string]bool
+	exclude          map[string]bool
+	prepends         []Template
+	appends          []Template
+	innerPrepends    []Template
+	innerAppends     []Template
+	newline          bool
+	indent           string
+	prefix           string
+	onlyDropIfExists bool
+	onCreateIfExists bool
 }
 
 func NewTableBuilder(dialect ...string) *TableBuilder {
@@ -60,40 +60,60 @@ func NewTableBuilder(dialect ...string) *TableBuilder {
 	return b
 }
 
-func CreateTable(table string, columns []ColumnSchema) *TableBuilder {
-	return NewTableBuilder().CreateTable(table, columns)
+func CreateTable(table string, columns ...interface{}) *TableBuilder {
+	return NewTableBuilder().CreateTable(table, columns...)
 }
 
-func CreateTableWithStruct(table string, aStruct interface{}) *TableBuilder {
-	return NewTableBuilder().CreateTableWithStruct(table, aStruct)
-}
-
-func BatchCreateTables(tables []TableSchema, onNotExists bool, dialect ...string) Template {
-	var result Template
-	finalDialect := ""
-	if len(dialect) > 0 {
-		finalDialect = dialect[0]
-	}
-	for _, table := range tables {
-		result = result.Join(CreateTable(table.Name, table.Columns).OnNotExists(onNotExists).Dialect(finalDialect).Build())
-	}
-	return result
-}
-
-func BatchCreateTablesWithStructs(structs map[string]interface{}, onNotExists bool, dialect ...string) Template {
-	finalDialect := ""
-	if len(dialect) > 0 {
-		finalDialect = dialect[0]
-	}
-	var result Template
-	for table, aStruct := range structs {
-		result = result.Join(CreateTableWithStruct(table, aStruct).OnNotExists(onNotExists).Dialect(finalDialect).Build())
-	}
-	return result
+func CreateTableIfNotExists(table string, columns ...interface{}) *TableBuilder {
+	return NewTableBuilder().CreateTableIfNotExists(table, columns...)
 }
 
 func DropTable(table string) *TableBuilder {
 	return NewTableBuilder().DropTable(table)
+}
+
+func DropTableIfExists(table string) *TableBuilder {
+	return NewTableBuilder().DropTableIfExists(table)
+}
+
+func BatchCreateTables(dialect string, args ...interface{}) Template {
+	var result Template
+	firstArg := args[0]
+	switch firstArg.(type) {
+	case TableSchema:
+		var items []TableSchema
+		for _, table := range args {
+			items = append(items, table.(TableSchema))
+		}
+		for _, item := range items {
+			result = result.Join(CreateTable(item.Name, item.Columns).Dialect(dialect).Build())
+		}
+	case map[string]interface{}:
+		for table, aStruct := range firstArg.(map[string]interface{}) {
+			result = result.Join(CreateTable(table, aStruct).Dialect(dialect).Build())
+		}
+	}
+	return result
+}
+
+func BatchCreateTablesIfNotExists(dialect string, args ...interface{}) Template {
+	var result Template
+	firstArg := args[0]
+	switch firstArg.(type) {
+	case TableSchema:
+		var items []TableSchema
+		for _, table := range args {
+			items = append(items, table.(TableSchema))
+		}
+		for _, item := range items {
+			result = result.Join(CreateTable(item.Name, item.Columns).Dialect(dialect).OnlyCreateIfNotExists(true).Build())
+		}
+	case map[string]interface{}:
+		for table, aStruct := range firstArg.(map[string]interface{}) {
+			result = result.Join(CreateTable(table, aStruct).OnlyCreateIfNotExists(true).Dialect(dialect).Build())
+		}
+	}
+	return result
 }
 
 func BatchDropTables(tables []string, onExists bool, dialect ...string) Template {
@@ -103,21 +123,33 @@ func BatchDropTables(tables []string, onExists bool, dialect ...string) Template
 	}
 	var result Template
 	for _, table := range tables {
-		result = result.Join(NewTableBuilder().DropTable(table).OnExists(onExists).Dialect(finalDialect).Build())
+		result = result.Join(NewTableBuilder().DropTable(table).OnlyDropIfExists(onExists).Dialect(finalDialect).Build())
 	}
 	return result
 }
 
-func (b *TableBuilder) CreateTable(table string, columns []ColumnSchema) *TableBuilder {
-	return b.Action(TableActionCreateTable).Table(table).Columns(columns)
+func BatchDropTablesIfExists(dialect string, tables ...string) Template {
+	var result Template
+	for _, table := range tables {
+		result = result.Join(NewTableBuilder().DropTable(table).Dialect(dialect).OnlyDropIfExists(true).Build())
+	}
+	return result
 }
 
-func (b *TableBuilder) CreateTableWithStruct(table string, aStruct interface{}) *TableBuilder {
-	return b.Action(TableActionCreateTable).Table(table).StructColumns(aStruct)
+func (b *TableBuilder) CreateTable(table string, columns ...interface{}) *TableBuilder {
+	return b.Action(TableActionCreateTable).Table(table).Columns(columns...)
+}
+
+func (b *TableBuilder) CreateTableIfNotExists(table string, columns ...interface{}) *TableBuilder {
+	return b.Action(TableActionCreateTable).Table(table).Columns(columns...).OnlyCreateIfNotExists(true)
 }
 
 func (b *TableBuilder) DropTable(table string) *TableBuilder {
 	return b.Action(TableActionDropTable).Table(table)
+}
+
+func (b *TableBuilder) DropTableIfExists(table string) *TableBuilder {
+	return b.Action(TableActionDropTable).Table(table).OnlyDropIfExists(true)
 }
 
 func (b *TableBuilder) Dialect(name string) *TableBuilder {
@@ -135,31 +167,44 @@ func (b *TableBuilder) Table(name string) *TableBuilder {
 	return b
 }
 
-func (b *TableBuilder) Columns(columns []ColumnSchema) *TableBuilder {
-	b.columns = append(b.columns, columns...)
+func (b *TableBuilder) Columns(columns ...interface{}) *TableBuilder {
+	if len(columns) == 0 {
+		return b
+	}
+	firstColumn := columns[0]
+	switch v := firstColumn.(type) {
+	case []ColumnSchema:
+		b.columns = append(b.columns, v...)
+	default:
+		firstColumnValue := reflect.ValueOf(firstColumn)
+		for firstColumnValue.Kind() == reflect.Ptr {
+			firstColumnValue = firstColumnValue.Elem()
+		}
+		switch firstColumnValue.Kind() {
+		case reflect.Struct:
+			b.columns = append(b.columns, getStructFields(reflect.TypeOf(firstColumn)).columns(b.dialect)...)
+		default:
+			panic("bear: table builder columns: unsupported args type")
+		}
+	}
 	return b
 }
 
-func (b *TableBuilder) StructColumns(aStruct interface{}) *TableBuilder {
-	b.columns = append(b.columns, getStructFields(reflect.TypeOf(aStruct)).columns(b.dialect)...)
-	return b
-}
-
-func (b *TableBuilder) OnExists(value ...bool) *TableBuilder {
+func (b *TableBuilder) OnlyDropIfExists(value ...bool) *TableBuilder {
 	finalValue := true
 	if len(value) > 0 {
 		finalValue = value[0]
 	}
-	b.onExists = finalValue
+	b.onlyDropIfExists = finalValue
 	return b
 }
 
-func (b *TableBuilder) OnNotExists(value ...bool) *TableBuilder {
+func (b *TableBuilder) OnlyCreateIfNotExists(value ...bool) *TableBuilder {
 	finalValue := true
 	if len(value) > 0 {
 		finalValue = value[0]
 	}
-	b.onNotExists = finalValue
+	b.onCreateIfExists = finalValue
 	return b
 }
 
@@ -233,7 +278,7 @@ func (b *TableBuilder) Build() Template {
 				buffer.WriteString("\n")
 			}
 		}
-		if b.onNotExists {
+		if b.onCreateIfExists {
 			buffer.WriteString(fmt.Sprintf("create table if not exists %s (", b.table))
 		} else {
 			buffer.WriteString(fmt.Sprintf("create table %s (", b.table))
@@ -284,7 +329,7 @@ func (b *TableBuilder) Build() Template {
 			buffer.WriteString("\n")
 		}
 	case TableActionDropTable:
-		if b.onExists {
+		if b.onlyDropIfExists {
 			buffer.WriteString(fmt.Sprintf("drop table if exists %s;", b.table))
 		} else {
 			buffer.WriteString(fmt.Sprintf("drop table %s;", b.table))
@@ -304,12 +349,8 @@ func (b *TableBuilder) Build() Template {
 	return result
 }
 
-func (b *TableBuilder) Execute(db DB) (*Result, error) {
-	return b.Build().Execute(db)
-}
-
-func (b *TableBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
-	return b.Build().ExecuteContext(ctx, db)
+func (b *TableBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
+	return b.Build().Exec(ctx, db)
 }
 
 func (b *TableBuilder) finalColumns() []ColumnSchema {

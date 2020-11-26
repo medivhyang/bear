@@ -31,7 +31,7 @@ type CommandBuilder struct {
 	columns []Template
 	include map[string]bool
 	exclude map[string]bool
-	where   Condition
+	where   Conditions
 }
 
 func NewCommandBuilder(dialect ...string) *CommandBuilder {
@@ -42,20 +42,12 @@ func NewCommandBuilder(dialect ...string) *CommandBuilder {
 	return b
 }
 
-func Insert(table string, pairs ...map[string]interface{}) *CommandBuilder {
-	return NewCommandBuilder().Insert(table, pairs...)
+func Insert(table string, args ...interface{}) *CommandBuilder {
+	return NewCommandBuilder().Insert(table, args...)
 }
 
-func InsertStruct(table string, aStruct interface{}, includeZeroValues bool) *CommandBuilder {
-	return NewCommandBuilder().InsertStruct(table, aStruct, includeZeroValues)
-}
-
-func Update(table string, pairs ...map[string]interface{}) *CommandBuilder {
-	return NewCommandBuilder().Update(table, pairs...)
-}
-
-func UpdateStruct(table string, aStruct interface{}, includeZeroValues bool) *CommandBuilder {
-	return NewCommandBuilder().UpdateStruct(table, aStruct, includeZeroValues)
+func Update(table string, args ...interface{}) *CommandBuilder {
+	return NewCommandBuilder().Update(table, args...)
 }
 
 func Delete(table string) *CommandBuilder {
@@ -64,34 +56,54 @@ func Delete(table string) *CommandBuilder {
 
 func (b *CommandBuilder) Action(a CommandAction) *CommandBuilder {
 	if !a.Valid() {
-		panic(fmt.Sprintf("bear: invalid command action %q", string(a)))
+		panic(fmt.Sprintf("bear: command builder action: invalid action %q", string(a)))
 	}
 	b.action = a
 	return b
 }
 
-func (b *CommandBuilder) Insert(table string, pairs ...map[string]interface{}) *CommandBuilder {
+func (b *CommandBuilder) Insert(table string, columns ...interface{}) *CommandBuilder {
 	b.Table(table).Action(CommandActionInsert)
-	if len(pairs) > 0 {
-		b.SetMap(pairs[0])
+	if len(columns) == 0 {
+		return b
+	}
+	firstColumn := columns[0]
+	firstColumnValue := reflect.ValueOf(firstColumn)
+	switch firstColumnValue.Kind() {
+	case reflect.Map:
+		b.setMap(firstColumn.(map[string]interface{}))
+	case reflect.Struct:
+		if len(columns) == 2 {
+			b.setStruct(firstColumn, columns[1].(bool))
+		} else {
+			b.setStruct(firstColumn, false)
+		}
+	default:
+		panic("bear: command builder insert: unsupported args type")
 	}
 	return b
 }
 
-func (b *CommandBuilder) InsertStruct(table string, aStruct interface{}, includeZeroValue bool) *CommandBuilder {
-	return b.Table(table).Action(CommandActionInsert).SetStruct(aStruct, includeZeroValue)
-}
-
-func (b *CommandBuilder) Update(table string, pairs ...map[string]interface{}) *CommandBuilder {
+func (b *CommandBuilder) Update(table string, columns ...interface{}) *CommandBuilder {
 	b.Table(table).Action(CommandActionUpdate)
-	if len(pairs) > 0 {
-		b.SetMap(pairs[0])
+	if len(columns) == 0 {
+		return b
+	}
+	firstColumn := columns[0]
+	firstColumnValue := reflect.ValueOf(firstColumn)
+	switch firstColumnValue.Kind() {
+	case reflect.Map:
+		b.setMap(firstColumn.(map[string]interface{}))
+	case reflect.Struct:
+		if len(columns) == 2 {
+			b.setStruct(firstColumn, columns[1].(bool))
+		} else {
+			b.setStruct(firstColumn, false)
+		}
+	default:
+		panic("bear: command builder update: unsupported args type")
 	}
 	return b
-}
-
-func (b *CommandBuilder) UpdateStruct(table string, aStruct interface{}, includeZeroValue bool) *CommandBuilder {
-	return b.Table(table).Action(CommandActionUpdate).SetStruct(aStruct, includeZeroValue)
 }
 
 func (b *CommandBuilder) Delete(table string) *CommandBuilder {
@@ -108,24 +120,50 @@ func (b *CommandBuilder) Table(name string) *CommandBuilder {
 	return b
 }
 
-func (b *CommandBuilder) Set(column string, value interface{}) *CommandBuilder {
+func (b *CommandBuilder) Set(args ...interface{}) *CommandBuilder {
+	if len(args) == 0 {
+		return b
+	}
+	firstArg := args[0]
+	firstArgValue := reflect.ValueOf(firstArg)
+	switch firstArgValue.Kind() {
+	case reflect.String:
+		if len(args) != 2 {
+			panic("bear: command builder set: unsupported args type")
+		}
+		b.set(firstArg.(string), args[1])
+	case reflect.Map:
+		b.setMap(firstArg.(map[string]interface{}))
+	case reflect.Struct:
+		if len(args) >= 2 {
+			b.setStruct(firstArg, args[1].(bool))
+		} else {
+			b.setStruct(firstArg, false)
+		}
+	default:
+		panic("bear: command builder set: unsupported args type")
+	}
+	return b
+}
+
+func (b *CommandBuilder) set(column string, value interface{}) *CommandBuilder {
 	b.columns = append(b.columns, NewTemplate(column, value))
 	return b
 }
 
-func (b *CommandBuilder) SetMap(m map[string]interface{}) *CommandBuilder {
+func (b *CommandBuilder) setMap(m map[string]interface{}) *CommandBuilder {
 	for k, v := range m {
 		b.Set(k, v)
 	}
 	return b
 }
 
-func (b *CommandBuilder) SetStruct(aStruct interface{}, includeZeroValue bool) *CommandBuilder {
+func (b *CommandBuilder) setStruct(aStruct interface{}, includeZeroValue bool) *CommandBuilder {
 	if aStruct == nil {
 		return b
 	}
-	m := trStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
-	return b.SetMap(m)
+	m := mapStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
+	return b.setMap(m)
 }
 
 func (b *CommandBuilder) Include(names ...string) *CommandBuilder {
@@ -148,23 +186,8 @@ func (b *CommandBuilder) Exclude(names ...string) *CommandBuilder {
 	return b
 }
 
-func (b *CommandBuilder) Where(format string, values ...interface{}) *CommandBuilder {
-	b.where = b.where.AppendTemplates(Template{Format: format, Values: values})
-	return b
-}
-
-func (b *CommandBuilder) WhereTemplates(templates ...Template) *CommandBuilder {
-	b.where = b.where.AppendTemplates(templates...)
-	return b
-}
-
-func (b *CommandBuilder) WhereMap(m map[string]interface{}) *CommandBuilder {
-	b.where = b.where.AppendMap(m)
-	return b
-}
-
-func (b *CommandBuilder) WhereStruct(aStruct interface{}, includeZeroValue bool) *CommandBuilder {
-	b.where = b.where.AppendStruct(aStruct, includeZeroValue)
+func (b *CommandBuilder) Where(args ...interface{}) *CommandBuilder {
+	b.where = b.where.Append(args...)
 	return b
 }
 
@@ -214,11 +237,11 @@ func (b *CommandBuilder) Build() Template {
 }
 
 func (b *CommandBuilder) Execute(db DB) (*Result, error) {
-	return b.Build().Execute(db)
+	return b.Build().Exec(context.TODO(), db)
 }
 
 func (b *CommandBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
-	return b.Build().ExecuteContext(ctx, db)
+	return b.Build().Exec(ctx, db)
 }
 
 func (b *CommandBuilder) finalColumns() []Template {

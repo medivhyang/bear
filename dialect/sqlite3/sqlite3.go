@@ -7,12 +7,12 @@ import (
 )
 
 func init() {
-	bear.RegisterDialect("sqlite3", &dialect{}, true)
+	bear.RegisterDefaultDialect("sqlite3", &dialect{})
 }
 
 type dialect struct{}
 
-func (d dialect) TranslateGoType(t reflect.Type) string {
+func (d dialect) MapGoType(t reflect.Type) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}

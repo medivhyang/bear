@@ -5,25 +5,23 @@ import (
 	"sync"
 )
 
-type DialectTranslator interface {
-	TranslateGoType(t reflect.Type) string
+type DialectInterface interface {
+	MapGoType(t reflect.Type) string
 }
 
 var dialects sync.Map
 
-func RegisterDialect(name string, dialect DialectTranslator, isDefault ...bool) {
+func RegisterDialect(name string, dialect DialectInterface) {
 	dialects.Store(name, dialect)
-	var finalIsDefault bool
-	if len(isDefault) > 0 {
-		finalIsDefault = isDefault[0]
-	}
-	if finalIsDefault {
-		dialects.Store("", dialect)
-	}
+}
+
+func RegisterDefaultDialect(name string, dialect DialectInterface) {
+	dialects.Store(name, dialect)
+	SetDefaultDialect(name)
 }
 
 func SetDefaultDialect(name string) bool {
-	d := getDialect(name)
+	d := LookupDialect(name)
 	if d != nil {
 		dialects.Store("", d)
 		return true
@@ -31,12 +29,12 @@ func SetDefaultDialect(name string) bool {
 	return false
 }
 
-func getDialect(name string) DialectTranslator {
+func LookupDialect(name string) DialectInterface {
 	v, ok := dialects.Load(name)
 	if !ok {
 		return nil
 	}
-	d, ok := v.(DialectTranslator)
+	d, ok := v.(DialectInterface)
 	if !ok {
 		return nil
 	}

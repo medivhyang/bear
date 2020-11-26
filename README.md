@@ -37,7 +37,7 @@ func ExampleSelect() {
 }
 
 func ExampleSelectStruct() {
-	t := bear.SelectStruct("user", user{}).Where("id = ?", 1).Build()
+	t := bear.Select("user", user{}).Where("id = ?", 1).Build()
 	fmt.Println(t)
 
 	// Output:
@@ -57,7 +57,7 @@ func ExampleInsert() {
 }
 
 func ExampleInsertStruct() {
-	t := bear.InsertStruct("user", user{
+	t := bear.Insert("user", user{
 		ID:      1,
 		Name:    "bob",
 		Created: time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC).Unix(),
@@ -79,7 +79,7 @@ func ExampleUpdate() {
 }
 
 func ExampleUpdateStruct() {
-	t := bear.UpdateStruct("user", user{Name: "new alice"}, true).
+	t := bear.Update("user", user{Name: "new alice"}, true).
 		Where("id = ?", 1).
 		Build()
 	fmt.Println(t)

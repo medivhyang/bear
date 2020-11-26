@@ -6,22 +6,57 @@ import (
 	"strings"
 )
 
-type Condition []Template
+type Conditions []Template
 
-func NewCondition() Condition {
+func NewConditions() Conditions {
 	return []Template{}
 }
 
-func (c Condition) Append(format string, values ...interface{}) Condition {
-	return c.AppendTemplates(NewTemplate(format, values...))
+func (c Conditions) Append(args ...interface{}) Conditions {
+	if len(args) == 0 {
+		return c
+	}
+	firstArg := args[0]
+	switch v := firstArg.(type) {
+	case string:
+		c = c.appendFormat(v, args[1:]...)
+	case map[string]interface{}:
+		c = c.appendMap(v)
+	case Template:
+		var items []Template
+		for _, arg := range args {
+			items = append(items, arg.(Template))
+		}
+		c = c.appendTemplates(items...)
+	default:
+		firstArgValue := reflect.ValueOf(firstArg)
+		for firstArgValue.Kind() == reflect.Ptr {
+			firstArgValue = firstArgValue.Elem()
+		}
+		switch firstArgValue.Kind() {
+		case reflect.Struct:
+			if len(args) >= 2 {
+				c = c.appendStruct(firstArg, args[2].(bool))
+			} else {
+				c = c.appendStruct(firstArg, false)
+			}
+		default:
+			panic("bear: conditions append: unsupported args type")
+		}
+	}
+	return c
 }
 
-func (c Condition) AppendStruct(aStruct interface{}, includeZeroValue bool) Condition {
-	m := trStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
-	return c.AppendMap(m)
+func (c Conditions) appendFormat(format string, values ...interface{}) Conditions {
+	return c.appendTemplates(NewTemplate(format, values...))
 }
 
-func (c Condition) AppendMap(m map[string]interface{}) Condition {
+func (c Conditions) appendStruct(aStruct interface{}, includeZeroValue bool) Conditions {
+	m := mapStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
+	return c.appendMap(m)
+}
+
+func (c Conditions) appendMap(m map[string]interface{}) Conditions {
 	var (
 		formats []string
 		values  []interface{}
@@ -30,10 +65,10 @@ func (c Condition) AppendMap(m map[string]interface{}) Condition {
 		formats = append(formats, fmt.Sprintf("%s = ?", k))
 		values = append(values, v)
 	}
-	return c.AppendTemplates(NewTemplate(strings.Join(formats, " and "), values...))
+	return c.appendTemplates(NewTemplate(strings.Join(formats, " and "), values...))
 }
 
-func (c Condition) AppendTemplates(templates ...Template) Condition {
+func (c Conditions) appendTemplates(templates ...Template) Conditions {
 	clone := c.Clone()
 	for _, t := range templates {
 		if !t.IsEmptyOrWhitespace() {
@@ -43,7 +78,7 @@ func (c Condition) AppendTemplates(templates ...Template) Condition {
 	return clone
 }
 
-func (c Condition) Build() Template {
+func (c Conditions) Build() Template {
 	if len(c) == 0 {
 		return Template{}
 	}
@@ -57,7 +92,7 @@ func (c Condition) Build() Template {
 	return result
 }
 
-func (c Condition) Clone() Condition {
+func (c Conditions) Clone() Conditions {
 	if len(c) == 0 {
 		return nil
 	}

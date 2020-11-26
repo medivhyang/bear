@@ -19,15 +19,46 @@ func NewBatchInsertBuilder() *BatchInsertBuilder {
 	return &BatchInsertBuilder{}
 }
 
-func BatchInsert(table string, rows []map[string]interface{}) *BatchInsertBuilder {
-	return NewBatchInsertBuilder().BatchInsert(table, rows)
+func BatchInsert(table string, args ...interface{}) *BatchInsertBuilder {
+	return NewBatchInsertBuilder().BatchInsert(table, args...)
 }
 
-func BatchInsertStructs(table string, structs interface{}) *BatchInsertBuilder {
-	return NewBatchInsertBuilder().BatchInsertStructs(table, structs)
+func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *BatchInsertBuilder {
+	result := &BatchInsertBuilder{table: table}
+	if len(args) == 0 {
+		return result
+	}
+	firstArg := args[0]
+	switch v := firstArg.(type) {
+	case map[string]interface{}:
+		var items []map[string]interface{}
+		for _, arg := range args {
+			items = append(items, arg.(map[string]interface{}))
+		}
+		b.batchInsertMaps(table, items...)
+	case []map[string]interface{}:
+		b.batchInsertMaps(table, v...)
+	default:
+		firstArgValue := reflect.ValueOf(firstArg)
+		for firstArgValue.Kind() == reflect.Ptr {
+			firstArgValue = firstArgValue.Elem()
+		}
+		switch firstArgValue.Kind() {
+		case reflect.Struct:
+			b.batchInsertStructs(table, args...)
+		case reflect.Slice:
+			if firstArgValue.Type().Elem().Kind() != reflect.Struct {
+				panic("bear: batch insert builder batch insert: unsupported args type")
+			}
+			b.batchInsertStructs(table, args[0])
+		default:
+			panic("bear: batch insert builder batch insert: unsupported args type")
+		}
+	}
+	return b
 }
 
-func (b *BatchInsertBuilder) BatchInsert(table string, rows []map[string]interface{}) *BatchInsertBuilder {
+func (b *BatchInsertBuilder) batchInsertMaps(table string, rows ...map[string]interface{}) *BatchInsertBuilder {
 	result := &BatchInsertBuilder{table: table}
 	if len(rows) == 0 {
 		return result
@@ -49,20 +80,13 @@ func (b *BatchInsertBuilder) BatchInsert(table string, rows []map[string]interfa
 	return result
 }
 
-func (b *BatchInsertBuilder) BatchInsertStructs(table string, structs interface{}) *BatchInsertBuilder {
-	v := reflect.ValueOf(structs)
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if v.Kind() != reflect.Slice {
-		panic("batch insert struct: require struct slice")
-	}
-	if v.Len() == 0 {
+func (b *BatchInsertBuilder) batchInsertStructs(table string, structs ...interface{}) *BatchInsertBuilder {
+	if len(structs) == 0 {
 		return &BatchInsertBuilder{}
 	}
 	var rows []map[string]interface{}
-	for i := 0; i < v.Len(); i++ {
-		row := trStructToColumns(v.Index(i), true)
+	for _, aStruct := range structs {
+		row := mapStructToColumns(reflect.ValueOf(aStruct), true)
 		rows = append(rows, row)
 	}
 	return BatchInsert(table, rows)
@@ -124,12 +148,8 @@ func (b *BatchInsertBuilder) Build() Template {
 	return NewTemplate(format, values...)
 }
 
-func (b *BatchInsertBuilder) Execute(db DB) (*Result, error) {
-	return b.Build().Execute(db)
-}
-
-func (b *BatchInsertBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
-	return b.Build().ExecuteContext(ctx, db)
+func (b *BatchInsertBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
+	return b.Build().Exec(ctx, db)
 }
 
 func (b *BatchInsertBuilder) finalRows() [][]Template {

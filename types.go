@@ -34,8 +34,8 @@ func (f structField) column(dialect string) (ColumnSchema, bool) {
 	if typo := f.tag[TagNestedKeyTypeName]; typo != "" {
 		result.Type = typo
 	} else {
-		if d := getDialect(dialect); d != nil {
-			result.Type = d.TranslateGoType(f.typo)
+		if d := LookupDialect(dialect); d != nil {
+			result.Type = d.MapGoType(f.typo)
 		}
 	}
 	if result.Type == "" {
@@ -171,7 +171,7 @@ func parseTag(tag string) map[string]string {
 	return result
 }
 
-func trStructToColumns(structValue reflect.Value, includeZeroValue bool) map[string]interface{} {
+func mapStructToColumns(structValue reflect.Value, includeZeroValue bool) map[string]interface{} {
 	for structValue.Kind() == reflect.Ptr {
 		structValue = structValue.Elem()
 	}
@@ -198,5 +198,5 @@ func trStructToColumns(structValue reflect.Value, includeZeroValue bool) map[str
 }
 
 func isZeroValue(value reflect.Value) bool {
-	return value.IsNil() || value.IsZero()
+	return value.IsZero()
 }

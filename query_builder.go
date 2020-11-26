@@ -15,9 +15,9 @@ type QueryBuilder struct {
 	include  map[string]bool
 	exclude  map[string]bool
 	joins    []Template
-	where    Condition
+	where    Conditions
 	groupBy  []string
-	having   Condition
+	having   Conditions
 	orderBy  []string
 	paging   Template
 }
@@ -30,28 +30,12 @@ func NewQueryBuilder(dialect ...string) *QueryBuilder {
 	return b
 }
 
-func Select(table string, columns ...string) *QueryBuilder {
+func Select(table string, columns ...interface{}) *QueryBuilder {
 	return NewQueryBuilder().Select(table, columns...)
 }
 
-func SelectTemplate(table string, columns ...Template) *QueryBuilder {
-	return NewQueryBuilder().SelectTemplate(table, columns...)
-}
-
-func SelectStruct(table string, aStruct interface{}) *QueryBuilder {
-	return NewQueryBuilder().SelectStruct(table, aStruct)
-}
-
-func (b *QueryBuilder) Select(table string, columns ...string) *QueryBuilder {
+func (b *QueryBuilder) Select(table string, columns ...interface{}) *QueryBuilder {
 	return b.Table(table).Columns(columns...)
-}
-
-func (b *QueryBuilder) SelectTemplate(table string, columns ...Template) *QueryBuilder {
-	return b.Table(table).TemplateColumns(columns...)
-}
-
-func (b *QueryBuilder) SelectStruct(table string, aStruct interface{}) *QueryBuilder {
-	return b.Table(table).StructColumns(aStruct)
 }
 
 func (b *QueryBuilder) Dialect(name string) *QueryBuilder {
@@ -69,19 +53,52 @@ func (b *QueryBuilder) Distinct(value bool) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Columns(columns ...string) *QueryBuilder {
+func (b *QueryBuilder) Columns(columns ...interface{}) *QueryBuilder {
+	if len(columns) == 0 {
+		return b
+	}
+	firstColumn := columns[0]
+	switch firstColumn.(type) {
+	case string:
+		var items []string
+		for _, c := range columns {
+			items = append(items, c.(string))
+		}
+		b.stringColumns(items...)
+	case Template:
+		var items []Template
+		for _, c := range columns {
+			items = append(items, c.(Template))
+		}
+		b.templateColumns(items...)
+	default:
+		firstColumnValue := reflect.ValueOf(firstColumn)
+		for firstColumnValue.Kind() == reflect.Ptr {
+			firstColumnValue = firstColumnValue.Elem()
+		}
+		switch firstColumnValue.Kind() {
+		case reflect.Struct:
+			b.structColumns(firstColumn)
+		default:
+			panic("bear: columns: unsupported args type")
+		}
+	}
+	return b
+}
+
+func (b *QueryBuilder) stringColumns(columns ...string) *QueryBuilder {
 	for _, column := range columns {
 		b.columns = append(b.columns, NewTemplate(column))
 	}
 	return b
 }
 
-func (b *QueryBuilder) TemplateColumns(columns ...Template) *QueryBuilder {
+func (b *QueryBuilder) templateColumns(columns ...Template) *QueryBuilder {
 	b.columns = append(b.columns, columns...)
 	return b
 }
 
-func (b *QueryBuilder) StructColumns(aStruct interface{}) *QueryBuilder {
+func (b *QueryBuilder) structColumns(aStruct interface{}) *QueryBuilder {
 	names := getStructFields(reflect.TypeOf(aStruct)).columnNames()
 	for _, name := range names {
 		b.columns = append(b.columns, NewTemplate(name))
@@ -109,53 +126,33 @@ func (b *QueryBuilder) Exclude(names ...string) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Join(format string, values ...interface{}) *QueryBuilder {
-	b.joins = append(b.joins, Template{Format: format, Values: values})
+func (b *QueryBuilder) Join(args ...interface{}) *QueryBuilder {
+	if len(args) == 0 {
+		return b
+	}
+	firstArg := args[0]
+	switch firstArg.(type) {
+	case string:
+		b.joins = append(b.joins, Template{Format: args[0].(string), Values: args[1:]})
+	case Template:
+		var items []Template
+		for _, arg := range args {
+			items = append(items, arg.(Template))
+		}
+		b.joins = append(b.joins, items...)
+	default:
+		panic("bear: query builder join: unsupported args type")
+	}
 	return b
 }
 
-func (b *QueryBuilder) JoinTemplates(templates ...Template) *QueryBuilder {
-	b.joins = append(b.joins, templates...)
+func (b *QueryBuilder) Where(args ...interface{}) *QueryBuilder {
+	b.where = b.where.Append(args...)
 	return b
 }
 
-func (b *QueryBuilder) Where(format string, values ...interface{}) *QueryBuilder {
-	b.where = b.where.AppendTemplates(NewTemplate(format, values...))
-	return b
-}
-
-func (b *QueryBuilder) WhereTemplates(templates ...Template) *QueryBuilder {
-	b.where = b.where.AppendTemplates(templates...)
-	return b
-}
-
-func (b *QueryBuilder) WhereMap(m map[string]interface{}) *QueryBuilder {
-	b.where = b.where.AppendMap(m)
-	return b
-}
-
-func (b *QueryBuilder) WhereStruct(i interface{}, includeZeroValue bool) *QueryBuilder {
-	b.where = b.where.AppendStruct(i, includeZeroValue)
-	return b
-}
-
-func (b *QueryBuilder) Having(format string, values ...interface{}) *QueryBuilder {
-	b.having.AppendTemplates(Template{Format: format, Values: values})
-	return b
-}
-
-func (b *QueryBuilder) HavingTemplates(templates ...Template) *QueryBuilder {
-	b.having.AppendTemplates(templates...)
-	return b
-}
-
-func (b *QueryBuilder) HavingMap(m map[string]interface{}) *QueryBuilder {
-	b.where.AppendMap(m)
-	return b
-}
-
-func (b *QueryBuilder) HavingStruct(aStruct interface{}, includeZeroValues bool) *QueryBuilder {
-	b.where.AppendStruct(aStruct, includeZeroValues)
+func (b *QueryBuilder) Having(args ...interface{}) *QueryBuilder {
+	b.having.Append(args...)
 	return b
 }
 
@@ -174,13 +171,19 @@ func (b *QueryBuilder) Limit(offset int, limit int) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Paging(format string, values ...interface{}) *QueryBuilder {
-	b.paging = NewTemplate(format, values...)
-	return b
-}
-
-func (b *QueryBuilder) PagingTemplate(template Template) *QueryBuilder {
-	b.paging = template
+func (b *QueryBuilder) Paging(args ...interface{}) *QueryBuilder {
+	if len(args) == 0 {
+		return b
+	}
+	firstArg := args[0]
+	switch firstArg.(type) {
+	case string:
+		b.paging = NewTemplate(firstArg.(string), args[1:]...)
+	case Template:
+		b.paging = firstArg.(Template)
+	default:
+		panic("bear: query builder: unsupported args type")
+	}
 	return b
 }
 
@@ -248,20 +251,16 @@ func (b *QueryBuilder) Build() Template {
 	return result
 }
 
-func (b *QueryBuilder) Query(db DB) (*Rows, error) {
-	return b.Build().Query(db)
-}
-
-func (b *QueryBuilder) QueryContext(ctx context.Context, db DB) (*Rows, error) {
-	return b.Build().QueryContext(ctx, db)
+func (b *QueryBuilder) Query(ctx context.Context, db DB) (*Rows, error) {
+	return b.Build().Query(ctx, db)
 }
 
 func (b *QueryBuilder) QueryScalar(ctx context.Context, db DB, value interface{}) error {
 	return b.Build().QueryScalar(ctx, db, value)
 }
 
-func (b *QueryBuilder) QueryScalarSlice(ctx context.Context, db DB, values interface{}) error {
-	return b.Build().QueryScalarSlice(ctx, db, values)
+func (b *QueryBuilder) QueryScalarSlice(ctx context.Context, db DB, value interface{}) error {
+	return b.Build().QueryScalarSlice(ctx, db, value)
 }
 
 func (b *QueryBuilder) QueryMap(ctx context.Context, db DB) (map[string]interface{}, error) {
@@ -272,12 +271,12 @@ func (b *QueryBuilder) QueryMapSlice(ctx context.Context, db DB) ([]map[string]i
 	return b.Build().QueryMapSlice(ctx, db)
 }
 
-func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, structPtr interface{}) error {
-	return b.Build().QueryStruct(ctx, db, structPtr)
+func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, value interface{}) error {
+	return b.Build().QueryStruct(ctx, db, value)
 }
 
-func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
-	return b.Build().QueryStructSlice(ctx, db, structPtr)
+func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, value interface{}) error {
+	return b.Build().QueryStructSlice(ctx, db, value)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {
