@@ -251,32 +251,12 @@ func (b *QueryBuilder) Build() Template {
 	return result
 }
 
-func (b *QueryBuilder) Query(ctx context.Context, db DB) (*Rows, error) {
-	return b.Build().Query(ctx, db)
+func (b *QueryBuilder) Query(ctx context.Context, db DB, value interface{}) error {
+	return b.Build().Query(ctx, db, value)
 }
 
-func (b *QueryBuilder) QueryScalar(ctx context.Context, db DB, value interface{}) error {
-	return b.Build().QueryScalar(ctx, db, value)
-}
-
-func (b *QueryBuilder) QueryScalarSlice(ctx context.Context, db DB, value interface{}) error {
-	return b.Build().QueryScalarSlice(ctx, db, value)
-}
-
-func (b *QueryBuilder) QueryMap(ctx context.Context, db DB) (map[string]interface{}, error) {
-	return b.Build().QueryMap(ctx, db)
-}
-
-func (b *QueryBuilder) QueryMapSlice(ctx context.Context, db DB) ([]map[string]interface{}, error) {
-	return b.Build().QueryMapSlice(ctx, db)
-}
-
-func (b *QueryBuilder) QueryStruct(ctx context.Context, db DB, value interface{}) error {
-	return b.Build().QueryStruct(ctx, db, value)
-}
-
-func (b *QueryBuilder) QueryStructSlice(ctx context.Context, db DB, value interface{}) error {
-	return b.Build().QueryStructSlice(ctx, db, value)
+func (b *QueryBuilder) QueryRows(ctx context.Context, db DB) (*Rows, error) {
+	return b.Build().QueryRows(ctx, db)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {

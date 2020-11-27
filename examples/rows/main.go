@@ -80,12 +80,8 @@ func openSqlite3(filename string) (*sql.DB, error) {
 }
 
 func demoMapSlice(db *sql.DB) {
-	rows, err := bear.Select("user", user{}).Query(context.Background(), db)
-	if err != nil {
-		panic(err)
-	}
-	slice, err := rows.MapSlice()
-	if err != nil {
+	var slice []map[string]interface{}
+	if err := bear.Select("user", user{}).Query(context.Background(), db, &slice); err != nil {
 		panic(err)
 	}
 	for i, v := range slice {
@@ -94,24 +90,16 @@ func demoMapSlice(db *sql.DB) {
 }
 
 func demoMap(db *sql.DB) {
-	rows, err := bear.Select("user", user{}).Query(context.Background(), db)
-	if err != nil {
-		panic(err)
-	}
-	m, err := rows.Map()
-	if err != nil {
+	var m map[string]interface{}
+	if err := bear.Select("user", user{}).Query(context.Background(), db, &m); err != nil {
 		panic(err)
 	}
 	fmt.Printf("%#v\n", m)
 }
 
 func demoStructSlice(db *sql.DB) {
-	rows, err := bear.Select("user", user{}).Query(context.Background(), db)
-	if err != nil {
-		panic(err)
-	}
 	var users []user
-	if err := rows.StructSlice(&users); err != nil {
+	if err := bear.Select("user", user{}).Query(context.Background(), db, &users); err != nil {
 		panic(err)
 	}
 	for i, v := range users {
@@ -120,12 +108,8 @@ func demoStructSlice(db *sql.DB) {
 }
 
 func demoStruct(db *sql.DB) {
-	rows, err := bear.Select("user", user{}).Query(context.Background(), db)
-	if err != nil {
-		panic(err)
-	}
 	var u user
-	if err := rows.Struct(&u); err != nil {
+	if err := bear.Select("user", user{}).Query(context.Background(), db, &u); err != nil {
 		panic(err)
 	}
 	fmt.Printf("%#v\n", u)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -67,7 +68,34 @@ func (t Template) Or(other Template) Template {
 	return t.Join(other, " or ")
 }
 
-func (t Template) Query(ctx context.Context, db DB) (*Rows, error) {
+func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
+	switch v := value.(type) {
+	case *map[string]interface{}:
+		return t.queryMap(ctx, db, v)
+	default:
+		reflectValue := reflect.ValueOf(value)
+		for reflectValue.Kind() != reflect.Ptr {
+			reflectValue = reflectValue.Elem()
+		}
+		switch reflectValue.Kind() {
+		case reflect.Struct:
+			return t.queryStruct(ctx, db, value)
+		case reflect.Slice:
+			switch reflectValue.Type().Kind() {
+			case reflect.Map:
+				return t.queryMapSlice(ctx, db, value)
+			case reflect.Struct:
+				return t.queryStructSlice(ctx, db, value)
+			default:
+				return t.queryScalarSlice(ctx, db, value)
+			}
+		default:
+			return t.queryScalar(ctx, db, value)
+		}
+	}
+}
+
+func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
@@ -79,52 +107,76 @@ func (t Template) Query(ctx context.Context, db DB) (*Rows, error) {
 	return WrapRows(rows), nil
 }
 
-func (t Template) QueryScalar(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.Query(ctx, db)
+func (t Template) queryScalar(ctx context.Context, db DB, value interface{}) error {
+	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.Scalar(value)
 }
 
-func (t Template) QueryScalarSlice(ctx context.Context, db DB, values interface{}) error {
-	rows, err := t.Query(ctx, db)
+func (t Template) queryScalarSlice(ctx context.Context, db DB, values interface{}) error {
+	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.ScalarSlice(values)
 }
 
-func (t Template) QueryMap(ctx context.Context, db DB) (map[string]interface{}, error) {
-	rows, err := t.Query(ctx, db)
-	if err != nil {
-		return nil, err
+func (t Template) queryMap(ctx context.Context, db DB, value *map[string]interface{}) error {
+	reflectValue := reflect.ValueOf(value)
+	for reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflectValue.Elem()
 	}
-	return rows.Map()
-}
-
-func (t Template) QueryMapSlice(ctx context.Context, db DB) ([]map[string]interface{}, error) {
-	rows, err := t.Query(ctx, db)
-	if err != nil {
-		return nil, err
+	if !reflectValue.CanSet() {
+		return errors.New("bear: template query map: can't set value")
 	}
-	return rows.MapSlice()
-}
-
-func (t Template) QueryStruct(ctx context.Context, db DB, structPtr interface{}) error {
-	rows, err := t.Query(ctx, db)
+	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
 	}
-	return rows.Struct(structPtr)
-}
-
-func (t Template) QueryStructSlice(ctx context.Context, db DB, structPtr interface{}) error {
-	rows, err := t.Query(ctx, db)
+	m, err := rows.Map()
 	if err != nil {
 		return err
 	}
-	return rows.StructSlice(structPtr)
+	reflectValue.Set(reflect.ValueOf(m))
+	return nil
+}
+
+func (t Template) queryMapSlice(ctx context.Context, db DB, value interface{}) error {
+	reflectValue := reflect.ValueOf(value)
+	for reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflectValue.Elem()
+	}
+	if !reflectValue.CanSet() {
+		return errors.New("bear: template query map slice: can't set value")
+	}
+	rows, err := t.QueryRows(ctx, db)
+	if err != nil {
+		return err
+	}
+	slice, err := rows.MapSlice()
+	if err != nil {
+		return err
+	}
+	reflectValue.Set(reflect.ValueOf(slice))
+	return nil
+}
+
+func (t Template) queryStruct(ctx context.Context, db DB, value interface{}) error {
+	rows, err := t.QueryRows(ctx, db)
+	if err != nil {
+		return err
+	}
+	return rows.Struct(value)
+}
+
+func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}) error {
+	rows, err := t.QueryRows(ctx, db)
+	if err != nil {
+		return err
+	}
+	return rows.StructSlice(value)
 }
 
 func (t Template) Exec(ctx context.Context, db DB) (*Result, error) {
