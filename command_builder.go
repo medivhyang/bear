@@ -236,11 +236,7 @@ func (b *CommandBuilder) Build() Template {
 	return result
 }
 
-func (b *CommandBuilder) Execute(db DB) (*Result, error) {
-	return b.Build().Exec(context.TODO(), db)
-}
-
-func (b *CommandBuilder) ExecuteContext(ctx context.Context, db DB) (*Result, error) {
+func (b *CommandBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
 	return b.Build().Exec(ctx, db)
 }
 
