@@ -58,6 +58,7 @@ func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *Bat
 }
 
 func (b *BatchInsertBuilder) batchInsertMaps(table string, rows ...map[string]interface{}) *BatchInsertBuilder {
+	b.Table(table)
 	if len(rows) == 0 {
 		return b
 	}
