@@ -81,7 +81,7 @@ func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
 		case reflect.Struct:
 			return t.queryStruct(ctx, db, value)
 		case reflect.Slice:
-			switch reflectValue.Type().Kind() {
+			switch reflectValue.Type().Elem().Kind() {
 			case reflect.Map:
 				return t.queryMapSlice(ctx, db, value)
 			case reflect.Struct:
