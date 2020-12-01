@@ -206,7 +206,7 @@ func toInterfaceSlice(slice interface{}) []interface{} {
 	for value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
-	if value.Kind() == reflect.Slice {
+	if value.Kind() != reflect.Slice {
 		panic("bear: to interface slice: require slice type")
 	}
 	length := value.Len()
