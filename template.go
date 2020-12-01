@@ -74,7 +74,7 @@ func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
 		return t.queryMap(ctx, db, v)
 	default:
 		reflectValue := reflect.ValueOf(value)
-		for reflectValue.Kind() != reflect.Ptr {
+		for reflectValue.Kind() == reflect.Ptr {
 			reflectValue = reflectValue.Elem()
 		}
 		switch reflectValue.Kind() {
