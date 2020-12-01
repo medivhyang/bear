@@ -200,3 +200,16 @@ func mapStructToColumns(structValue reflect.Value, includeZeroValue bool) map[st
 func isZeroValue(value reflect.Value) bool {
 	return value.IsZero()
 }
+
+func toInterfaceSlice(slice interface{}) []interface{} {
+	value := reflect.ValueOf(slice)
+	if value.Kind() == reflect.Slice {
+		panic("bear: to interface slice: require slice type")
+	}
+	length := value.Len()
+	result := make([]interface{}, length)
+	for i := 0; i < length; i++ {
+		result[i] = value.Index(i).Interface()
+	}
+	return result
+}

@@ -45,12 +45,12 @@ func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *Bat
 		}
 		switch firstArgValue.Kind() {
 		case reflect.Struct:
-			b.batchInsertStructs(table, args...)
+			b.batchInsertStructs(table, args)
 		case reflect.Slice:
 			if firstArgValue.Type().Elem().Kind() != reflect.Struct {
 				panic("bear: batch insert builder batch insert: unsupported args type")
 			}
-			b.batchInsertStructs(table, args[0])
+			b.batchInsertStructs(table, toInterfaceSlice(firstArg))
 		default:
 			panic("bear: batch insert builder batch insert: unsupported args type")
 		}
@@ -80,7 +80,7 @@ func (b *BatchInsertBuilder) batchInsertMaps(table string, rows ...map[string]in
 	return result
 }
 
-func (b *BatchInsertBuilder) batchInsertStructs(table string, structs ...interface{}) *BatchInsertBuilder {
+func (b *BatchInsertBuilder) batchInsertStructs(table string, structs []interface{}) *BatchInsertBuilder {
 	if len(structs) == 0 {
 		return &BatchInsertBuilder{}
 	}
