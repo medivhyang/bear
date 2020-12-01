@@ -24,9 +24,8 @@ func BatchInsert(table string, args ...interface{}) *BatchInsertBuilder {
 }
 
 func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *BatchInsertBuilder {
-	result := &BatchInsertBuilder{table: table}
 	if len(args) == 0 {
-		return result
+		return b
 	}
 	firstArg := args[0]
 	switch v := firstArg.(type) {
@@ -59,9 +58,8 @@ func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *Bat
 }
 
 func (b *BatchInsertBuilder) batchInsertMaps(table string, rows ...map[string]interface{}) *BatchInsertBuilder {
-	result := &BatchInsertBuilder{table: table}
 	if len(rows) == 0 {
-		return result
+		return b
 	}
 	var keys []string
 	for k := range rows[0] {
@@ -74,15 +72,15 @@ func (b *BatchInsertBuilder) batchInsertMaps(table string, rows ...map[string]in
 			columns = append(columns, NewTemplate(k, row[k]))
 		}
 		if len(columns) > 0 {
-			result.rows = append(result.rows, columns)
+			b.rows = append(b.rows, columns)
 		}
 	}
-	return result
+	return b
 }
 
 func (b *BatchInsertBuilder) batchInsertStructs(table string, structs []interface{}) *BatchInsertBuilder {
 	if len(structs) == 0 {
-		return &BatchInsertBuilder{}
+		return b
 	}
 	var rows []map[string]interface{}
 	for _, aStruct := range structs {
