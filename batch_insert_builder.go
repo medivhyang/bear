@@ -34,9 +34,9 @@ func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *Bat
 		for _, arg := range args {
 			items = append(items, arg.(map[string]interface{}))
 		}
-		b.batchInsertMaps(table, items...)
+		b.batchInsertMaps(table, items)
 	case []map[string]interface{}:
-		b.batchInsertMaps(table, v...)
+		b.batchInsertMaps(table, v)
 	default:
 		firstArgValue := reflect.ValueOf(firstArg)
 		for firstArgValue.Kind() == reflect.Ptr {
@@ -57,7 +57,7 @@ func (b *BatchInsertBuilder) BatchInsert(table string, args ...interface{}) *Bat
 	return b
 }
 
-func (b *BatchInsertBuilder) batchInsertMaps(table string, rows ...map[string]interface{}) *BatchInsertBuilder {
+func (b *BatchInsertBuilder) batchInsertMaps(table string, rows []map[string]interface{}) *BatchInsertBuilder {
 	b.Table(table)
 	if len(rows) == 0 {
 		return b
@@ -88,7 +88,7 @@ func (b *BatchInsertBuilder) batchInsertStructs(table string, structs []interfac
 		row := mapStructToColumns(reflect.ValueOf(aStruct), true)
 		rows = append(rows, row)
 	}
-	return BatchInsert(table, rows)
+	return b.batchInsertMaps(table, rows)
 }
 
 func (b *BatchInsertBuilder) Table(name string) *BatchInsertBuilder {
