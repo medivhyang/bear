@@ -203,6 +203,9 @@ func isZeroValue(value reflect.Value) bool {
 
 func toInterfaceSlice(slice interface{}) []interface{} {
 	value := reflect.ValueOf(slice)
+	for value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
 	if value.Kind() == reflect.Slice {
 		panic("bear: to interface slice: require slice type")
 	}
