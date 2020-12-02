@@ -8,7 +8,10 @@ import (
 	"strings"
 )
 
-var ErrEmptyTemplate = errors.New("bear: empty template")
+var (
+	ErrEmptyTemplate = errors.New("bear: empty template")
+	ErrRequireDB     = errors.New("bear: require db")
+)
 
 type Template struct {
 	Format string
@@ -69,6 +72,9 @@ func (t Template) Or(other Template) Template {
 }
 
 func (t Template) Query(ctx context.Context, db Executor, value interface{}) error {
+	if db == nil {
+		return ErrRequireDB
+	}
 	switch v := value.(type) {
 	case *map[string]interface{}:
 		return t.queryMap(ctx, db, v)
@@ -98,6 +104,9 @@ func (t Template) Query(ctx context.Context, db Executor, value interface{}) err
 func (t Template) QueryRows(ctx context.Context, db Executor) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
+	}
+	if db == nil {
+		return nil, ErrRequireDB
 	}
 	debugf("query: %s\n", t)
 	rows, err := db.QueryContext(ctx, t.Format, t.Values...)
@@ -182,6 +191,9 @@ func (t Template) queryStructSlice(ctx context.Context, db Executor, value inter
 func (t Template) Exec(ctx context.Context, db Executor) (*Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
+	}
+	if db == nil {
+		return nil, ErrRequireDB
 	}
 	debugf("exec: %s\n", t)
 	result, err := db.ExecContext(ctx, t.Format, t.Values...)
