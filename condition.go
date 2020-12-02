@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-type Conditions []Template
+type Condition []Template
 
-func NewConditions() Conditions {
+func NewCondition() Condition {
 	return []Template{}
 }
 
-func (c Conditions) Append(args ...interface{}) Conditions {
+func (c Condition) Append(args ...interface{}) Condition {
 	if len(args) == 0 {
 		return c
 	}
@@ -47,16 +47,16 @@ func (c Conditions) Append(args ...interface{}) Conditions {
 	return c
 }
 
-func (c Conditions) appendFormat(format string, values ...interface{}) Conditions {
+func (c Condition) appendFormat(format string, values ...interface{}) Condition {
 	return c.appendTemplates(NewTemplate(format, values...))
 }
 
-func (c Conditions) appendStruct(aStruct interface{}, includeZeroValue bool) Conditions {
+func (c Condition) appendStruct(aStruct interface{}, includeZeroValue bool) Condition {
 	m := mapStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
 	return c.appendMap(m)
 }
 
-func (c Conditions) appendMap(m map[string]interface{}) Conditions {
+func (c Condition) appendMap(m map[string]interface{}) Condition {
 	var (
 		formats []string
 		values  []interface{}
@@ -68,7 +68,7 @@ func (c Conditions) appendMap(m map[string]interface{}) Conditions {
 	return c.appendTemplates(NewTemplate(strings.Join(formats, " and "), values...))
 }
 
-func (c Conditions) appendTemplates(templates ...Template) Conditions {
+func (c Condition) appendTemplates(templates ...Template) Condition {
 	clone := c.Clone()
 	for _, t := range templates {
 		if !t.IsEmptyOrWhitespace() {
@@ -78,7 +78,7 @@ func (c Conditions) appendTemplates(templates ...Template) Conditions {
 	return clone
 }
 
-func (c Conditions) Build() Template {
+func (c Condition) Build() Template {
 	if len(c) == 0 {
 		return Template{}
 	}
@@ -92,7 +92,7 @@ func (c Conditions) Build() Template {
 	return result
 }
 
-func (c Conditions) Clone() Conditions {
+func (c Condition) Clone() Condition {
 	if len(c) == 0 {
 		return nil
 	}

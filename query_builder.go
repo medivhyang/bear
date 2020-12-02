@@ -15,9 +15,9 @@ type QueryBuilder struct {
 	include  map[string]bool
 	exclude  map[string]bool
 	joins    []Template
-	where    Conditions
+	where    Condition
 	groupBy  []string
-	having   Conditions
+	having   Condition
 	orderBy  []string
 	paging   Template
 }

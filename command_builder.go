@@ -31,7 +31,7 @@ type CommandBuilder struct {
 	columns []Template
 	include map[string]bool
 	exclude map[string]bool
-	where   Conditions
+	where   Condition
 }
 
 func NewCommandBuilder(dialect ...string) *CommandBuilder {
