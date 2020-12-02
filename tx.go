@@ -25,3 +25,19 @@ func DoTx(ctx context.Context, db DB, f func(tx Tx) error, opts ...*sql.TxOption
 	}
 	return nil
 }
+
+type txKey struct{}
+
+var txKeySingleton = txKey{}
+
+func PutTx(ctx context.Context, tx Tx) context.Context {
+	return context.WithValue(ctx, txKeySingleton, tx)
+}
+
+func GetTx(ctx context.Context) Tx {
+	v, ok := ctx.Value(txKeySingleton).(Tx)
+	if !ok {
+		return nil
+	}
+	return v
+}
