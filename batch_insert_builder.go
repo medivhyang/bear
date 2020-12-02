@@ -85,7 +85,7 @@ func (b *BatchInsertBuilder) batchInsertStructs(table string, structs []interfac
 	}
 	var rows []map[string]interface{}
 	for _, aStruct := range structs {
-		row := mapStructToColumns(reflect.ValueOf(aStruct), true)
+		row := parseColumnValueMap(reflect.ValueOf(aStruct), true)
 		rows = append(rows, row)
 	}
 	return b.batchInsertMaps(table, rows)

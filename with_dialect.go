@@ -9,7 +9,7 @@ func Dialect(name string) *WithDialect {
 }
 
 func (t *WithDialect) Table(name string) *WithTable {
-	return &WithTable{dialect: t.dialect, table: name}
+	return Table(name).Dialect(t.dialect)
 }
 
 func (t *WithDialect) Select(table string, columns ...interface{}) *QueryBuilder {

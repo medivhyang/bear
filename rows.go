@@ -144,8 +144,8 @@ func (r *Rows) StructSlice(structSlicePtr interface{}) error {
 	for r.Raw.Next() {
 		structValue := reflect.New(sliceValue.Type().Elem()).Elem()
 		for i, column := range columns {
-			if fieldIndex, ok := getStructFields(structValue.Type()).getFieldIndexByColumnName(column); ok {
-				values[i] = structValue.Field(fieldIndex).Addr().Interface()
+			if structIndex := parseFields(structValue.Type()).getStructIndexByColumnName(column); structIndex >= 0 {
+				values[i] = structValue.Field(structIndex).Addr().Interface()
 			} else {
 				var a interface{}
 				values[i] = &a
@@ -176,8 +176,8 @@ func (r *Rows) Struct(structPtr interface{}) error {
 	}
 	values := make([]interface{}, len(columns))
 	for i, column := range columns {
-		if fieldIndex, ok := getStructFields(structValue.Type()).getFieldIndexByColumnName(column); ok {
-			values[i] = structValue.Field(fieldIndex).Addr().Interface()
+		if structIndex := parseFields(structValue.Type()).getStructIndexByColumnName(column); structIndex >= 0 {
+			values[i] = structValue.Field(structIndex).Addr().Interface()
 		} else {
 			var a interface{}
 			values[i] = &a

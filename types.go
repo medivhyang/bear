@@ -17,51 +17,61 @@ var (
 	TagNestedKeySuffixName = "suffix"
 )
 
-type structField struct {
+type field struct {
 	index int
 	name  string
 	typo  reflect.Type
 	tag   map[string]string
 }
 
-func (f structField) column(dialect string) (ColumnSchema, bool) {
-	result := ColumnSchema{}
-	name := f.columnName()
-	if name == "" {
-		return result, false
+func (f field) column(dialect string) *ColumnSchema {
+	if f.ignore() {
+		return nil
 	}
-	result.Name = name
-	if typo := f.tag[TagNestedKeyTypeName]; typo != "" {
-		result.Type = typo
-	} else {
-		if d := LookupDialect(dialect); d != nil {
-			result.Type = d.MapGoType(f.typo)
-		}
+	return &ColumnSchema{
+		Name:   f.columnName(),
+		Type:   f.columnType(dialect),
+		Suffix: f.suffix(),
 	}
-	if result.Type == "" {
-		return result, false
-	}
-	if suffix := f.tag[TagNestedKeySuffixName]; suffix != "" {
-		result.Suffix = suffix
-	}
-	return result, true
 }
 
-func (f structField) columnName() string {
-	if _, ok := f.tag[TagNestedKeyIgnore]; ok {
-		return ""
+func (f field) ignore() bool {
+	_, ok := f.tag[TagNestedKeyIgnore]
+	return ok
+}
+
+func (f field) columnName() string {
+	name := f.tagColumnName()
+	if name == "" {
+		name = f.structColumnName()
 	}
-	if v := f.tag[TagNestedKeyColumnName]; v != "" {
-		return v
-	}
+	return name
+}
+
+func (f field) tagColumnName() string {
+	return f.tag[TagNestedKeyColumnName]
+}
+
+func (f field) structColumnName() string {
 	return toSnake(f.name)
 }
 
-type structFieldSlice []structField
+func (f field) columnType(dialect string) string {
+	if typo := f.tag[TagNestedKeyTypeName]; typo != "" {
+		return typo
+	}
+	return LookupDialect(dialect).MapGoType(f.typo)
+}
 
-var structFieldsCache = sync.Map{}
+func (f field) suffix() string {
+	return f.tag[TagNestedKeySuffixName]
+}
 
-func getStructFields(typo reflect.Type) structFieldSlice {
+type fields []field
+
+var fieldsCache = sync.Map{}
+
+func parseFields(typo reflect.Type) fields {
 	for typo.Kind() == reflect.Ptr {
 		typo = typo.Elem()
 	}
@@ -69,77 +79,83 @@ func getStructFields(typo reflect.Type) structFieldSlice {
 		panic("bear: get struct fields: require struct kind type")
 	}
 	if typo.String() != "" {
-		if v, ok := structFieldsCache.Load(typo.String()); ok {
-			if v, ok := v.([]structField); ok {
+		if v, ok := fieldsCache.Load(typo.String()); ok {
+			if v, ok := v.([]field); ok {
 				return v
 			}
 		}
 	}
-	var result []structField
+	var result []field
 	for i := 0; i < typo.NumField(); i++ {
-		field := typo.Field(i)
-		tag := parseTag(field.Tag.Get(TagKey))
-		item := structField{
+		f := typo.Field(i)
+		tag := parseColumnTag(f.Tag.Get(TagKey))
+		item := field{
 			index: i,
-			name:  field.Name,
-			typo:  field.Type,
+			name:  f.Name,
+			typo:  f.Type,
 			tag:   tag,
 		}
 		result = append(result, item)
 	}
 	if typo.String() != "" {
-		structFieldsCache.Store(typo.String(), result)
+		fieldsCache.Store(typo.String(), result)
 	}
 	return result
 }
 
-func (slice structFieldSlice) getByFieldIndex(index int) (*structField, bool) {
-	for _, field := range slice {
-		if field.index == index {
-			return &field, true
+func (fields fields) getByStructIndex(i int) *field {
+	for _, field := range fields {
+		if field.index == i {
+			return &field
 		}
 	}
-	return nil, false
+	return nil
 }
 
-func (slice structFieldSlice) getByColumnName(name string) (*structField, bool) {
-	for _, field := range slice {
-		if _, ok := field.tag[TagNestedKeyIgnore]; ok {
+func (fields fields) getByColumnName(name string) *field {
+	if name == "" {
+		return nil
+	}
+	for _, field := range fields {
+		if field.ignore() {
 			continue
 		}
-		if v, ok := field.tag[TagNestedKeyColumnName]; ok && v == name {
-			return &field, true
+		if name == field.tagColumnName() {
+			return &field
 		}
 	}
-	for _, field := range slice {
-		if toSnake(field.name) == name {
-			return &field, true
+	for _, field := range fields {
+		if field.ignore() {
+			continue
+		}
+		if name == field.structColumnName() {
+			return &field
 		}
 	}
-	return nil, false
+	return nil
 }
 
-func (slice structFieldSlice) getFieldIndexByColumnName(name string) (int, bool) {
-	field, ok := slice.getByColumnName(name)
-	if ok {
-		return field.index, true
+func (fields fields) getStructIndexByColumnName(name string) int {
+	field := fields.getByColumnName(name)
+	if field != nil {
+		return field.index
 	}
-	return -1, false
+	return -1
 }
 
-func (slice structFieldSlice) columns(dialect string) []ColumnSchema {
+func (fields fields) columns(dialect string) []ColumnSchema {
 	var result []ColumnSchema
-	for _, field := range slice {
-		if c, ok := field.column(dialect); ok {
-			result = append(result, c)
+	for _, field := range fields {
+		if column := field.column(dialect); column != nil {
+			result = append(result, *column)
 		}
 	}
 	return result
 }
 
-func (slice structFieldSlice) columnNames() []string {
+func (fields fields) columnNames() []string {
 	var result []string
-	for _, field := range slice {
+	for _, field := range fields {
 		name := field.columnName()
 		if name != "" {
 			result = append(result, name)
@@ -148,7 +164,7 @@ func (slice structFieldSlice) columnNames() []string {
 	return result
 }
 
-func parseTag(tag string) map[string]string {
+func parseColumnTag(tag string) map[string]string {
 	result := map[string]string{}
 	tag = strings.TrimSpace(tag)
 	if tag == "" {
@@ -171,18 +187,18 @@ func parseTag(tag string) map[string]string {
 	return result
 }
 
-func mapStructToColumns(structValue reflect.Value, includeZeroValue bool) map[string]interface{} {
+func parseColumnValueMap(structValue reflect.Value, includeZeroValue bool) map[string]interface{} {
 	for structValue.Kind() == reflect.Ptr {
 		structValue = structValue.Elem()
 	}
 	if structValue.Kind() != reflect.Struct {
 		panic("bear: get column value map from struct: require struct type")
 	}
-	fields := getStructFields(structValue.Type())
+	fields := parseFields(structValue.Type())
 	result := map[string]interface{}{}
 	for i := 0; i < structValue.NumField(); i++ {
-		field, ok := fields.getByFieldIndex(i)
-		if !ok {
+		field := fields.getByStructIndex(i)
+		if field == nil {
 			continue
 		}
 		name := field.columnName()

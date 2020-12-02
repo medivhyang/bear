@@ -182,7 +182,7 @@ func (b *TableBuilder) Columns(columns ...interface{}) *TableBuilder {
 		}
 		switch firstColumnValue.Kind() {
 		case reflect.Struct:
-			b.columns = append(b.columns, getStructFields(reflect.TypeOf(firstColumn)).columns(b.dialect)...)
+			b.columns = append(b.columns, parseFields(reflect.TypeOf(firstColumn)).columns(b.dialect)...)
 		default:
 			panic("bear: table builder columns: unsupported args type")
 		}

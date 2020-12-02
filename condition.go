@@ -51,7 +51,7 @@ func (c Condition) appendFormat(format string, values ...interface{}) Condition 
 }
 
 func (c Condition) appendStruct(aStruct interface{}, includeZeroValue bool) Condition {
-	m := mapStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
+	m := parseColumnValueMap(reflect.ValueOf(aStruct), includeZeroValue)
 	return c.appendMap(m)
 }
 

@@ -14,6 +14,11 @@ func (t *WithTable) Table(name string) *WithTable {
 	return t
 }
 
+func (t *WithTable) Dialect(name string) *WithTable {
+	t.dialect = name
+	return t
+}
+
 func (t *WithTable) Select(columns ...interface{}) *QueryBuilder {
 	return NewQueryBuilder().Dialect(t.dialect).Select(t.table, columns...)
 }

@@ -162,7 +162,7 @@ func (b *CommandBuilder) setStruct(aStruct interface{}, includeZeroValue bool) *
 	if aStruct == nil {
 		return b
 	}
-	m := mapStructToColumns(reflect.ValueOf(aStruct), includeZeroValue)
+	m := parseColumnValueMap(reflect.ValueOf(aStruct), includeZeroValue)
 	return b.setMap(m)
 }
 
