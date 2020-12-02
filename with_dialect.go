@@ -24,10 +24,6 @@ func (t *WithDialect) Update(table string, args ...interface{}) *CommandBuilder 
 	return NewCommandBuilder().Dialect(t.dialect).Update(table, args...)
 }
 
-func (t *WithDialect) UpdateStruct(table string, aStruct interface{}, includeZeroValues bool) *CommandBuilder {
-	return NewCommandBuilder().Dialect(t.dialect).Update(table, aStruct, includeZeroValues)
-}
-
 func (t *WithDialect) Delete(table string) *CommandBuilder {
 	return NewCommandBuilder().Dialect(t.dialect).Delete(table)
 }
