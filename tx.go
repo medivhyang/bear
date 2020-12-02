@@ -5,12 +5,12 @@ import (
 	"database/sql"
 )
 
-func DoTx(ctx context.Context, db DB, f func(tx Tx) error, opts ...*sql.TxOptions) error {
-	var finalOpts *sql.TxOptions
-	if len(opts) > 0 {
-		finalOpts = opts[0]
+func Tx(ctx context.Context, db DB, f func(tx *sql.Tx) error, options ...*sql.TxOptions) error {
+	var finalOptions *sql.TxOptions
+	if len(options) > 0 {
+		finalOptions = options[0]
 	}
-	tx, err := db.BeginTx(ctx, finalOpts)
+	tx, err := db.BeginTx(ctx, finalOptions)
 	if err != nil {
 		return err
 	}
@@ -24,20 +24,4 @@ func DoTx(ctx context.Context, db DB, f func(tx Tx) error, opts ...*sql.TxOption
 		return nil
 	}
 	return nil
-}
-
-type txKey struct{}
-
-var txKeySingleton = txKey{}
-
-func PutTx(ctx context.Context, tx Tx) context.Context {
-	return context.WithValue(ctx, txKeySingleton, tx)
-}
-
-func GetTx(ctx context.Context) Tx {
-	v, ok := ctx.Value(txKeySingleton).(Tx)
-	if !ok {
-		return nil
-	}
-	return v
 }

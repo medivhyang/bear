@@ -349,7 +349,7 @@ func (b *TableBuilder) Build() Template {
 	return result
 }
 
-func (b *TableBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
+func (b *TableBuilder) Exec(ctx context.Context, db Executor) (*Result, error) {
 	return b.Build().Exec(ctx, db)
 }
 

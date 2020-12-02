@@ -5,7 +5,7 @@ import (
 	"database/sql"
 )
 
-type Tx interface {
+type Executor interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -13,7 +13,7 @@ type Tx interface {
 }
 
 type DB interface {
-	Tx
+	Executor
 	Begin() (*sql.Tx, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
