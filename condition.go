@@ -14,20 +14,20 @@ func NewCondition() Condition {
 
 func (c Condition) Append(args ...interface{}) Condition {
 	if len(args) == 0 {
-		return c
+		return c.Clone()
 	}
 	firstArg := args[0]
 	switch v := firstArg.(type) {
 	case string:
-		c = c.appendFormat(v, args[1:]...)
+		return c.appendFormat(v, args[1:]...)
 	case map[string]interface{}:
-		c = c.appendMap(v)
+		return c.appendMap(v)
 	case Template:
 		var items []Template
 		for _, arg := range args {
 			items = append(items, arg.(Template))
 		}
-		c = c.appendTemplates(items...)
+		return c.appendTemplates(items...)
 	default:
 		firstArgValue := reflect.ValueOf(firstArg)
 		for firstArgValue.Kind() == reflect.Ptr {
@@ -36,15 +36,14 @@ func (c Condition) Append(args ...interface{}) Condition {
 		switch firstArgValue.Kind() {
 		case reflect.Struct:
 			if len(args) >= 2 {
-				c = c.appendStruct(firstArg, args[2].(bool))
+				return c.appendStruct(firstArg, args[2].(bool))
 			} else {
-				c = c.appendStruct(firstArg, false)
+				return c.appendStruct(firstArg, false)
 			}
 		default:
 			panic("bear: conditions append: unsupported args type")
 		}
 	}
-	return c
 }
 
 func (c Condition) appendFormat(format string, values ...interface{}) Condition {
@@ -96,7 +95,7 @@ func (c Condition) Clone() Condition {
 	if len(c) == 0 {
 		return nil
 	}
-	newCondition := make([]Template, 0, len(c))
-	copy(newCondition, c)
-	return newCondition
+	clone := make([]Template, 0, len(c))
+	copy(clone, c)
+	return clone
 }
