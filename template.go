@@ -8,11 +8,6 @@ import (
 	"strings"
 )
 
-var (
-	ErrEmptyTemplate = errors.New("bear: empty template")
-	ErrRequireDB     = errors.New("bear: require db")
-)
-
 type Template struct {
 	Format string
 	Values []interface{}
@@ -71,7 +66,7 @@ func (t Template) Or(other Template) Template {
 	return t.Join(other, " or ")
 }
 
-func (t Template) Query(ctx context.Context, db Executor, value interface{}) error {
+func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
 	if db == nil {
 		return ErrRequireDB
 	}
@@ -101,7 +96,7 @@ func (t Template) Query(ctx context.Context, db Executor, value interface{}) err
 	}
 }
 
-func (t Template) QueryRows(ctx context.Context, db Executor) (*Rows, error) {
+func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
@@ -116,7 +111,7 @@ func (t Template) QueryRows(ctx context.Context, db Executor) (*Rows, error) {
 	return WrapRows(rows), nil
 }
 
-func (t Template) queryScalar(ctx context.Context, db Executor, value interface{}) error {
+func (t Template) queryScalar(ctx context.Context, db DB, value interface{}) error {
 	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
@@ -124,7 +119,7 @@ func (t Template) queryScalar(ctx context.Context, db Executor, value interface{
 	return rows.Scalar(value)
 }
 
-func (t Template) queryScalarSlice(ctx context.Context, db Executor, values interface{}) error {
+func (t Template) queryScalarSlice(ctx context.Context, db DB, values interface{}) error {
 	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
@@ -132,7 +127,7 @@ func (t Template) queryScalarSlice(ctx context.Context, db Executor, values inte
 	return rows.ScalarSlice(values)
 }
 
-func (t Template) queryMap(ctx context.Context, db Executor, value *map[string]interface{}) error {
+func (t Template) queryMap(ctx context.Context, db DB, value *map[string]interface{}) error {
 	reflectValue := reflect.ValueOf(value)
 	for reflectValue.Kind() == reflect.Ptr {
 		reflectValue = reflectValue.Elem()
@@ -152,7 +147,7 @@ func (t Template) queryMap(ctx context.Context, db Executor, value *map[string]i
 	return nil
 }
 
-func (t Template) queryMapSlice(ctx context.Context, db Executor, value interface{}) error {
+func (t Template) queryMapSlice(ctx context.Context, db DB, value interface{}) error {
 	reflectValue := reflect.ValueOf(value)
 	for reflectValue.Kind() == reflect.Ptr {
 		reflectValue = reflectValue.Elem()
@@ -172,7 +167,7 @@ func (t Template) queryMapSlice(ctx context.Context, db Executor, value interfac
 	return nil
 }
 
-func (t Template) queryStruct(ctx context.Context, db Executor, value interface{}) error {
+func (t Template) queryStruct(ctx context.Context, db DB, value interface{}) error {
 	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
@@ -180,7 +175,7 @@ func (t Template) queryStruct(ctx context.Context, db Executor, value interface{
 	return rows.Struct(value)
 }
 
-func (t Template) queryStructSlice(ctx context.Context, db Executor, value interface{}) error {
+func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}) error {
 	rows, err := t.QueryRows(ctx, db)
 	if err != nil {
 		return err
@@ -188,7 +183,7 @@ func (t Template) queryStructSlice(ctx context.Context, db Executor, value inter
 	return rows.StructSlice(value)
 }
 
-func (t Template) Exec(ctx context.Context, db Executor) (*Result, error) {
+func (t Template) Exec(ctx context.Context, db DB) (*Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}

@@ -147,7 +147,7 @@ func (b *BatchInsertBuilder) Build() Template {
 	return NewTemplate(format, values...)
 }
 
-func (b *BatchInsertBuilder) Exec(ctx context.Context, db Executor) (*Result, error) {
+func (b *BatchInsertBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
 	return b.Build().Exec(ctx, db)
 }
 
