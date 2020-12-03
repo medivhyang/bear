@@ -10,8 +10,8 @@ var (
 	TagKey               = "bear"
 	TagItemSeparator     = ","
 	TagKeyValueSeparator = ":"
-	TagNestedKeyIgnore   = "-"
 
+	TagNestedKeyIgnore     = "-"
 	TagNestedKeyColumnName = "column"
 	TagNestedKeyTypeName   = "type"
 	TagNestedKeySuffixName = "suffix"
