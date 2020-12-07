@@ -53,47 +53,67 @@ func (b *QueryBuilder) Distinct(value bool) *QueryBuilder {
 	return b
 }
 
-func (b *QueryBuilder) Columns(columns ...interface{}) *QueryBuilder {
-	if len(columns) == 0 {
+func (b *QueryBuilder) Columns(args ...interface{}) *QueryBuilder {
+	if len(args) == 0 {
 		return b
 	}
-	firstColumn := columns[0]
-	switch firstColumn.(type) {
+	firstArg := args[0]
+	switch firstArg.(type) {
 	case string:
 		var items []string
-		for _, c := range columns {
+		for _, c := range args {
 			items = append(items, c.(string))
 		}
-		b.stringColumns(items...)
+		b.stringColumns(items)
 	case Template:
 		var items []Template
-		for _, c := range columns {
+		for _, c := range args {
 			items = append(items, c.(Template))
 		}
-		b.templateColumns(items...)
+		b.templateColumns(items)
 	default:
-		firstColumnValue := reflect.ValueOf(firstColumn)
-		for firstColumnValue.Kind() == reflect.Ptr {
-			firstColumnValue = firstColumnValue.Elem()
+		firstArgValue := reflect.ValueOf(firstArg)
+		for firstArgValue.Kind() == reflect.Ptr {
+			firstArgValue = firstArgValue.Elem()
 		}
-		switch firstColumnValue.Kind() {
+		switch firstArgValue.Kind() {
 		case reflect.Struct:
-			b.structColumns(firstColumn)
+			b.structColumns(firstArg)
+		case reflect.Slice:
+			if firstArgValue.Len() == 0 {
+				return b
+			}
+			switch firstArgValue.Index(0).Interface().(type) {
+			case string:
+				v, ok := firstArg.([]string)
+				if !ok {
+					panic(ErrMismatchArgs)
+				}
+				b.stringColumns(v)
+			case Template:
+				v, ok := firstArg.([]Template)
+				if !ok {
+					panic(ErrMismatchArgs)
+				}
+				b.templateColumns(v)
+			default:
+				panic(ErrMismatchArgs)
+			}
 		default:
-			panic("bear: columns: unsupported args type")
+			panic(ErrMismatchArgs)
 		}
 	}
 	return b
 }
 
-func (b *QueryBuilder) stringColumns(columns ...string) *QueryBuilder {
+func (b *QueryBuilder) stringColumns(columns []string) *QueryBuilder {
 	for _, column := range columns {
 		b.columns = append(b.columns, NewTemplate(column))
 	}
 	return b
 }
 
-func (b *QueryBuilder) templateColumns(columns ...Template) *QueryBuilder {
+func (b *QueryBuilder) templateColumns(columns []Template) *QueryBuilder {
 	b.columns = append(b.columns, columns...)
 	return b
 }
