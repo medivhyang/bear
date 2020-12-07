@@ -252,7 +252,7 @@ func (b *QueryBuilder) Build() Template {
 }
 
 func (b *QueryBuilder) Query(ctx context.Context, db DB, value interface{}) error {
-	return b.Build().Query(ctx, db, value)
+	return b.Build().Query2(ctx, db, value)
 }
 
 func (b *QueryBuilder) QueryRows(ctx context.Context, db DB) (*Rows, error) {

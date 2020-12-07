@@ -97,6 +97,14 @@ func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
 	}
 }
 
+func (t Template) QueryContext(ctx context.Context, value interface{}) error {
+	db := GetDB(ctx)
+	if db == nil {
+		return ErrRequireDB
+	}
+	return t.Query(ctx, db, value)
+}
+
 func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
@@ -185,6 +193,17 @@ func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}
 }
 
 func (t Template) Exec(ctx context.Context, db DB) error {
+	if _, err := t.ExecResult(ctx, db); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t Template) ExecContext(ctx context.Context) error {
+	db := GetDB(ctx)
+	if db == nil {
+		return ErrRequireDB
+	}
 	if _, err := t.ExecResult(ctx, db); err != nil {
 		return err
 	}
