@@ -350,12 +350,12 @@ func (b *TableBuilder) Build() Template {
 	return result
 }
 
-func (b *TableBuilder) Exec(ctx context.Context, db DB) error {
-	return b.Build().Exec(ctx, db)
+func (b *TableBuilder) Exec(ctx context.Context, db ...DB) error {
+	return b.Build().Exec(ctx, db...)
 }
 
-func (b *TableBuilder) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
-	return b.Build().ExecResult(ctx, db)
+func (b *TableBuilder) ExecResult(ctx context.Context, db ...DB) (sql.Result, error) {
+	return b.Build().ExecResult(ctx, db...)
 }
 
 func (b *TableBuilder) finalColumns() []ColumnSchema {

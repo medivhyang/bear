@@ -251,12 +251,12 @@ func (b *QueryBuilder) Build() Template {
 	return result
 }
 
-func (b *QueryBuilder) Query(ctx context.Context, db DB, value interface{}) error {
-	return b.Build().Query2(ctx, db, value)
+func (b *QueryBuilder) Query(ctx context.Context, args ...interface{}) error {
+	return b.Build().Query(ctx, args...)
 }
 
-func (b *QueryBuilder) QueryRows(ctx context.Context, db DB) (*Rows, error) {
-	return b.Build().QueryRows(ctx, db)
+func (b *QueryBuilder) QueryRows(ctx context.Context, db ...DB) (*Rows, error) {
+	return b.Build().QueryRows(ctx, db...)
 }
 
 func (b *QueryBuilder) finalColumns() []Template {

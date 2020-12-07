@@ -67,10 +67,34 @@ func (t Template) Or(other Template) Template {
 	return t.Join(other, " or ")
 }
 
-func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
-	if db == nil {
-		return ErrRequireDB
+func (t Template) Query(ctx context.Context, args ...interface{}) error {
+	var (
+		db    DB
+		value interface{}
+	)
+	switch len(args) {
+	case 0:
+		panic(ErrInvalidArgs)
+	case 1:
+		if _, ok := args[0].(DB); ok {
+			panic(ErrInvalidArgs)
+		}
+		if db = GetDB(ctx); db == nil {
+			return ErrRequireDB
+		}
+		value = args[0]
+	default:
+		if v, ok := args[0].(DB); ok {
+			db = v
+			value = args[1]
+		} else {
+			if db = GetDB(ctx); db == nil {
+				return ErrRequireDB
+			}
+			value = args[0]
+		}
 	}
+
 	switch v := value.(type) {
 	case *map[string]interface{}:
 		return t.queryMap(ctx, db, v)
@@ -97,20 +121,25 @@ func (t Template) Query(ctx context.Context, db DB, value interface{}) error {
 	}
 }
 
-func (t Template) QueryContext(ctx context.Context, value interface{}) error {
-	db := GetDB(ctx)
-	if db == nil {
-		return ErrRequireDB
-	}
-	return t.Query(ctx, db, value)
-}
-
-func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
+func (t Template) QueryRows(ctx context.Context, db ...DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
-	if db == nil {
+	var finalDB DB
+	if len(db) > 0 {
+		finalDB = db[0]
+	} else {
+		finalDB = GetDB(ctx)
+	}
+	if finalDB == nil {
 		return nil, ErrRequireDB
+	}
+	return t.queryRows(ctx, finalDB)
+}
+
+func (t Template) queryRows(ctx context.Context, db DB) (*Rows, error) {
+	if t.IsEmptyOrWhitespace() {
+		return nil, ErrEmptyTemplate
 	}
 	debugf("query: %s\n", t)
 	rows, err := db.QueryContext(ctx, t.Format, t.Values...)
@@ -121,7 +150,7 @@ func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
 }
 
 func (t Template) queryScalar(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.QueryRows(ctx, db)
+	rows, err := t.queryRows(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -129,7 +158,7 @@ func (t Template) queryScalar(ctx context.Context, db DB, value interface{}) err
 }
 
 func (t Template) queryScalarSlice(ctx context.Context, db DB, values interface{}) error {
-	rows, err := t.QueryRows(ctx, db)
+	rows, err := t.queryRows(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -144,7 +173,7 @@ func (t Template) queryMap(ctx context.Context, db DB, value *map[string]interfa
 	if !reflectValue.CanSet() {
 		return errors.New("bear: template query map: can't set value")
 	}
-	rows, err := t.QueryRows(ctx, db)
+	rows, err := t.queryRows(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -164,7 +193,7 @@ func (t Template) queryMapSlice(ctx context.Context, db DB, value interface{}) e
 	if !reflectValue.CanSet() {
 		return errors.New("bear: template query map slice: can't set value")
 	}
-	rows, err := t.QueryRows(ctx, db)
+	rows, err := t.queryRows(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -177,7 +206,7 @@ func (t Template) queryMapSlice(ctx context.Context, db DB, value interface{}) e
 }
 
 func (t Template) queryStruct(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.QueryRows(ctx, db)
+	rows, err := t.queryRows(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -185,40 +214,33 @@ func (t Template) queryStruct(ctx context.Context, db DB, value interface{}) err
 }
 
 func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.QueryRows(ctx, db)
+	rows, err := t.queryRows(ctx, db)
 	if err != nil {
 		return err
 	}
 	return rows.StructSlice(value)
 }
 
-func (t Template) Exec(ctx context.Context, db DB) error {
-	if _, err := t.ExecResult(ctx, db); err != nil {
-		return err
-	}
-	return nil
+func (t Template) Exec(ctx context.Context, db ...DB) error {
+	_, err := t.ExecResult(ctx, db...)
+	return err
 }
 
-func (t Template) ExecContext(ctx context.Context) error {
-	db := GetDB(ctx)
-	if db == nil {
-		return ErrRequireDB
-	}
-	if _, err := t.ExecResult(ctx, db); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t Template) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
+func (t Template) ExecResult(ctx context.Context, db ...DB) (sql.Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
-	if db == nil {
+	var finalDB DB
+	if len(db) > 0 {
+		finalDB = db[0]
+	} else {
+		finalDB = GetDB(ctx)
+	}
+	if finalDB == nil {
 		return nil, ErrRequireDB
 	}
 	debugf("exec: %s\n", t)
-	result, err := db.ExecContext(ctx, t.Format, t.Values...)
+	result, err := finalDB.ExecContext(ctx, t.Format, t.Values...)
 	if err != nil {
 		return nil, err
 	}
