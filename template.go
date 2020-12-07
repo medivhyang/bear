@@ -74,13 +74,13 @@ func (t Template) Query(ctx context.Context, args ...interface{}) error {
 	)
 	switch len(args) {
 	case 0:
-		panic(ErrInvalidArgs)
+		panic(ErrMismatchArgs)
 	case 1:
 		if _, ok := args[0].(DB); ok {
-			panic(ErrInvalidArgs)
+			panic(ErrMismatchArgs)
 		}
 		if db = GetDB(ctx); db == nil {
-			return ErrRequireDB
+			return ErrNoDB
 		}
 		value = args[0]
 	default:
@@ -89,7 +89,7 @@ func (t Template) Query(ctx context.Context, args ...interface{}) error {
 			value = args[1]
 		} else {
 			if db = GetDB(ctx); db == nil {
-				return ErrRequireDB
+				return ErrNoDB
 			}
 			value = args[0]
 		}
@@ -132,7 +132,7 @@ func (t Template) QueryRows(ctx context.Context, db ...DB) (*Rows, error) {
 		finalDB = GetDB(ctx)
 	}
 	if finalDB == nil {
-		return nil, ErrRequireDB
+		return nil, ErrNoDB
 	}
 	return t.queryRows(ctx, finalDB)
 }
@@ -237,7 +237,7 @@ func (t Template) ExecResult(ctx context.Context, db ...DB) (sql.Result, error) 
 		finalDB = GetDB(ctx)
 	}
 	if finalDB == nil {
-		return nil, ErrRequireDB
+		return nil, ErrNoDB
 	}
 	debugf("exec: %s\n", t)
 	result, err := finalDB.ExecContext(ctx, t.Format, t.Values...)

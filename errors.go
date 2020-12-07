@@ -4,6 +4,6 @@ import "errors"
 
 var (
 	ErrEmptyTemplate = errors.New("bear: empty template")
-	ErrRequireDB     = errors.New("bear: require db")
-	ErrInvalidArgs   = errors.New("bear: invalid args")
+	ErrNoDB          = errors.New("bear: no db")
+	ErrMismatchArgs  = errors.New("bear: mismatch args")
 )

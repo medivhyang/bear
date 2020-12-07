@@ -30,7 +30,7 @@ func GetRawDB(ctx context.Context) *sql.DB {
 func MustGetRawDB(ctx context.Context) DB {
 	db := GetRawDB(ctx)
 	if db == nil {
-		panic(ErrRequireDB)
+		panic(ErrNoDB)
 	}
 	return nil
 }
@@ -60,7 +60,7 @@ func GetDB(ctx context.Context) DB {
 func MustGetDB(ctx context.Context) DB {
 	db := GetDB(ctx)
 	if db == nil {
-		panic(ErrRequireDB)
+		panic(ErrNoDB)
 	}
 	return db
 }
@@ -71,7 +71,7 @@ func BeginTx(ctx context.Context, options ...*sql.TxOptions) (context.Context, e
 	}
 	db := GetRawDB(ctx)
 	if db == nil {
-		return ctx, ErrRequireDB
+		return ctx, ErrNoDB
 	}
 	var finalOptions *sql.TxOptions
 	if len(options) > 0 {
