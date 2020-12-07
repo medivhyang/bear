@@ -2,6 +2,7 @@ package bear
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -183,7 +184,14 @@ func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}
 	return rows.StructSlice(value)
 }
 
-func (t Template) Exec(ctx context.Context, db DB) (*Result, error) {
+func (t Template) Exec(ctx context.Context, db DB) error {
+	if _, err := t.ExecResult(ctx, db); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t Template) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
@@ -195,7 +203,7 @@ func (t Template) Exec(ctx context.Context, db DB) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return WrapResult(result), nil
+	return result, nil
 }
 
 func (t Template) IsEmpty() bool {

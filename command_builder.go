@@ -2,6 +2,7 @@ package bear
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -236,8 +237,12 @@ func (b *CommandBuilder) Build() Template {
 	return result
 }
 
-func (b *CommandBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
+func (b *CommandBuilder) Exec(ctx context.Context, db DB) error {
 	return b.Build().Exec(ctx, db)
+}
+
+func (b *CommandBuilder) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
+	return b.Build().ExecResult(ctx, db)
 }
 
 func (b *CommandBuilder) finalColumns() []Template {

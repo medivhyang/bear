@@ -29,12 +29,12 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	if _, err := bear.DropTable("user").
+	if err := bear.DropTable("user").
 		OnlyDropIfExists().
 		Exec(context.Background(), db); err != nil {
 		panic(err)
 	}
-	if _, err := bear.CreateTableIfNotExists("user", user{}).Exec(context.Background(), db); err != nil {
+	if err := bear.CreateTableIfNotExists("user", user{}).Exec(context.Background(), db); err != nil {
 		panic(err)
 	}
 	data := []user{
@@ -44,7 +44,7 @@ func init() {
 		{ID: 4, Name: "Jason", Age: 33, Role: "teacher", Created: time.Now().Unix()},
 		{ID: 5, Name: "Monica", Age: 34, Role: "teacher", Created: time.Now().Unix()},
 	}
-	if _, err := bear.BatchInsert("user", data).Exec(context.Background(), db); err != nil {
+	if err := bear.BatchInsert("user", data).Exec(context.Background(), db); err != nil {
 		panic(err)
 	}
 }

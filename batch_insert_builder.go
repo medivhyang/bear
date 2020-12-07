@@ -2,6 +2,7 @@ package bear
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"sort"
@@ -147,8 +148,12 @@ func (b *BatchInsertBuilder) Build() Template {
 	return NewTemplate(format, values...)
 }
 
-func (b *BatchInsertBuilder) Exec(ctx context.Context, db DB) (*Result, error) {
+func (b *BatchInsertBuilder) Exec(ctx context.Context, db DB) error {
 	return b.Build().Exec(ctx, db)
+}
+
+func (b *BatchInsertBuilder) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
+	return b.Build().ExecResult(ctx, db)
 }
 
 func (b *BatchInsertBuilder) finalRows() [][]Template {
