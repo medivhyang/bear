@@ -7,116 +7,108 @@ import (
 	"strings"
 )
 
-func New(format string, values ...interface{}) bear.Template {
-	return bear.NewTemplate(format, values...)
+func Equal(name string, args ...interface{}) bear.Template {
+	return binary("=", name, args...)
 }
 
-func Value(values ...interface{}) bear.Template {
-	return bear.NewTemplate("", values...)
+func NotEqual(name string, args ...interface{}) bear.Template {
+	return binary("!=", name, args...)
 }
 
-func Equal(name string, value interface{}) bear.Template {
-	return binary("=", name, value)
+func LessThan(name string, args ...interface{}) bear.Template {
+	return binary("<", name, args...)
 }
 
-func NotEqual(name string, value interface{}) bear.Template {
-	return binary("!=", name, value)
+func LessEqual(name string, args ...interface{}) bear.Template {
+	return binary("<=", name, args...)
 }
 
-func LessThan(name string, value interface{}) bear.Template {
-	return binary("<", name, value)
+func GreaterThan(name string, args ...interface{}) bear.Template {
+	return binary(">", name, args...)
 }
 
-func LessEqual(name string, value interface{}) bear.Template {
-	return binary("<=", name, value)
+func GreaterEqual(name string, args ...interface{}) bear.Template {
+	return binary(">=", name, args...)
 }
 
-func GreaterThan(name string, value interface{}) bear.Template {
-	return binary(">", name, value)
+func Like(name string, args ...interface{}) bear.Template {
+	return binary("like", name, args...)
 }
 
-func GreaterEqual(name string, value interface{}) bear.Template {
-	return binary(">=", name, value)
-}
-
-func Like(name string, value string) bear.Template {
-	return binary("like", name, value)
-}
-
-func binary(op string, name string, value interface{}) bear.Template {
-	var (
-		format string
-		values []interface{}
-	)
-	t, ok := value.(bear.Template)
-	if ok {
-		if t.IsEmptyOrWhitespace() {
-			format = fmt.Sprintf("%s %s ?", name, op)
-		} else {
-			format = fmt.Sprintf("%s %s (%s)", name, op, t.Format)
-		}
-		value = append(values, t.Values...)
-	} else {
-		format = fmt.Sprintf("%s %s ?", name, op)
-		values = append(values, value)
+func binary(op string, name string, args ...interface{}) bear.Template {
+	if len(args) == 0 {
+		panic(bear.ErrMismatchArgs)
 	}
-	return bear.NewTemplate(format, values...)
+	switch firstArg := args[0].(type) {
+	case string:
+		return bear.NewTemplate(fmt.Sprintf("%s %s ?", name, op), args[1:]...)
+	case bear.Template:
+		if firstArg.IsEmptyOrWhitespace() {
+			return bear.NewTemplate("")
+		} else {
+			return bear.NewTemplate(fmt.Sprintf("%s %s (?)", name, op), firstArg.Values...)
+		}
+	default:
+		panic(bear.ErrMismatchArgs)
+	}
 }
 
-func In(name string, value interface{}) bear.Template {
-	return in(name, value, "in")
+func In(name string, args ...interface{}) bear.Template {
+	return in("in", name, args...)
 }
 
-func NotIn(name string, value interface{}) bear.Template {
-	return in(name, value, "not in")
+func NotIn(name string, args ...interface{}) bear.Template {
+	return in("not in", name, args...)
 }
 
-func in(name string, value interface{}, op string) bear.Template {
-	var (
-		format string
-		values []interface{}
-	)
-	t, ok := value.(bear.Template)
-	if ok {
-		if t.IsEmptyOrWhitespace() {
+func in(op string, name string, args ...interface{}) bear.Template {
+	if len(args) == 0 {
+		panic(bear.ErrMismatchArgs)
+	}
+	switch firstArg := args[0].(type) {
+	case string:
+		return bear.NewTemplate(firstArg, args[1:]...)
+	case bear.Template:
+		if firstArg.IsEmptyOrWhitespace() {
 			var holders []string
-			for i := 0; i < len(t.Values); i++ {
+			for i := 0; i < len(firstArg.Values); i++ {
 				holders = append(holders, "?")
 			}
-			format = fmt.Sprintf("%s %s (%s)", name, strings.Join(holders, ","), op)
+			return bear.NewTemplate(fmt.Sprintf("%s %s (%s)", name, op, strings.Join(holders, ",")), firstArg.Values...)
 		} else {
-			format = fmt.Sprintf("%s %s (%s)", name, t.Format, op)
+			return bear.NewTemplate(fmt.Sprintf("%s %s (%s)", name, op, firstArg.Format), firstArg.Values...)
 		}
-		values = append(values, t.Values...)
-	} else {
-		reflectValue := reflect.ValueOf(value)
-		for reflectValue.Kind() == reflect.Ptr {
-			reflectValue = reflectValue.Elem()
+	default:
+		firstArgValue := reflect.ValueOf(firstArg)
+		for firstArgValue.Kind() == reflect.Ptr {
+			firstArgValue = firstArgValue.Elem()
 		}
-		if reflectValue.Kind() != reflect.Slice {
-			panic(fmt.Sprintf("bear: expr %s: require slice", op))
+		switch firstArgValue.Kind() {
+		case reflect.Slice:
+			var holders []string
+			for i := 0; i < firstArgValue.Len(); i++ {
+				holders = append(holders, "?")
+			}
+			var values []interface{}
+			for i := 0; i < firstArgValue.Len(); i++ {
+				values = append(values, firstArgValue.Index(i).Interface())
+			}
+			return bear.NewTemplate(fmt.Sprintf("%s %s (%s)", name, op, strings.Join(holders, ",")), values...)
+		default:
+			panic(bear.ErrMismatchArgs)
 		}
-		var holders []string
-		for i := 0; i < reflectValue.Len(); i++ {
-			holders = append(holders, "?")
-		}
-		for i := 0; i < reflectValue.Len(); i++ {
-			values = append(values, reflectValue.Index(i).Interface())
-		}
-		format = fmt.Sprintf("%s %s (%s)", name, op, strings.Join(holders, ","))
 	}
-	return bear.NewTemplate(format, values...)
 }
 
 func Between(name string, left interface{}, right interface{}) bear.Template {
-	return between(name, left, right, "between")
+	return between("between", name, left, right)
 }
 
 func NotBetween(name string, left interface{}, right interface{}) bear.Template {
-	return between(name, left, right, "not between")
+	return between("not between", name, left, right)
 }
 
-func between(name string, left interface{}, right interface{}, op string) bear.Template {
+func between(op string, name string, left interface{}, right interface{}) bear.Template {
 	var (
 		format string
 		values []interface{}
@@ -148,24 +140,44 @@ func between(name string, left interface{}, right interface{}, op string) bear.T
 	return bear.NewTemplate(format, values...)
 }
 
-func Exists(t bear.Template) bear.Template {
-	return exists(t, "exists")
+func Exists(args ...interface{}) bear.Template {
+	return exists("exists", args...)
 }
 
-func NotExists(t bear.Template) bear.Template {
-	return exists(t, "not exists")
+func NotExists(args ...interface{}) bear.Template {
+	return exists("not exists", args...)
 }
 
-func exists(t bear.Template, op string) bear.Template {
-	var (
-		format string
-		values []interface{}
-	)
-	if t.IsEmptyOrWhitespace() {
-		return bear.Template{}
-	} else {
-		format = fmt.Sprintf("%s (%s)", op, t.Format)
+func exists(op string, args ...interface{}) bear.Template {
+	if len(args) == 0 {
+		panic(bear.ErrMismatchArgs)
 	}
-	values = append(values, t.Values...)
-	return bear.NewTemplate(format, values...)
+	switch firstArg := args[0].(type) {
+	case string:
+		return bear.NewTemplate(fmt.Sprintf("%s (%s)", op, firstArg), args[1:]...)
+	case bear.Template:
+		if firstArg.IsEmptyOrWhitespace() {
+			return bear.NewTemplate("")
+		}
+		return bear.NewTemplate(fmt.Sprintf("%s (%s)", op, firstArg.Format), firstArg.Values...)
+	default:
+		panic(bear.ErrMismatchArgs)
+	}
+}
+
+func Not(args ...interface{}) bear.Template {
+	if len(args) == 0 {
+		panic(bear.ErrMismatchArgs)
+	}
+	switch firstArg := args[0].(type) {
+	case string:
+		return bear.NewTemplate(fmt.Sprintf("not (%s)", firstArg), args[1:]...)
+	case bear.Template:
+		if firstArg.IsEmptyOrWhitespace() {
+			return bear.NewTemplate("")
+		}
+		return firstArg.WrapBracket().Prepend("not ")
+	default:
+		panic(bear.ErrMismatchArgs)
+	}
 }

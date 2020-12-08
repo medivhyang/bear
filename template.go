@@ -15,7 +15,7 @@ type Template struct {
 }
 
 func NewTemplate(format string, values ...interface{}) Template {
-	return Template{Format: format, Values: values}
+	return Template{Format: format, Values: append([]interface{}{}, values...)}
 }
 
 func (t Template) Prepend(format string, values ...interface{}) Template {
