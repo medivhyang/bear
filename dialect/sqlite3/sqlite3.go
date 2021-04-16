@@ -12,7 +12,7 @@ func init() {
 
 type dialect struct{}
 
-func (d dialect) MapGoType(t reflect.Type) string {
+func (d dialect) ToSQLType(t reflect.Type) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}

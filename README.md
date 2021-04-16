@@ -1,14 +1,10 @@
 # Bear
 
-Bear is a go sql builder.
+A go language sql builder.
 
 ## Why Bear
 
-1. Lightweight, native and efficient.
-2. Support template and condition base construction.
-3. Support crud construction.
-4. Provide dialect interface.
-5. Provide expr tools.
+Lightweight、lower dependence and efficient.
 
 ## Quick Start
 
@@ -23,9 +19,9 @@ import (
 )
 
 type user struct {
-	ID      int    `bear:"id,integer,primary key"`
-	Name    string `bear:"name,text,not null"`
-	Created int64  `bear:",integer,not null"`
+	ID      int    `bear:"name=id,type=integer,suffix=primary key"`
+	Name    string `bear:"name=name,type=text,suffix=not null"`
+	Created int64  `bear:"type=integer,suffix=not null"`
 }
 
 func ExampleSelect() {

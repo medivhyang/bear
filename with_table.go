@@ -5,6 +5,10 @@ type WithTable struct {
 	table   string
 }
 
+func Dialect(name string) *WithTable {
+	return &WithTable{dialect: name}
+}
+
 func Table(name string) *WithTable {
 	return &WithTable{table: name}
 }

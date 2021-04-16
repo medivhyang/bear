@@ -67,34 +67,13 @@ func (t Template) Or(other Template) Template {
 	return t.Join(other, " or ")
 }
 
-func (t Template) Query(ctx context.Context, args ...interface{}) error {
-	var (
-		db    DB
-		value interface{}
-	)
-	switch len(args) {
-	case 0:
+func (t Template) Query(ctx context.Context, db DB, args ...interface{}) error {
+	var value interface{}
+	if len(args) == 0 {
 		panic(ErrMismatchArgs)
-	case 1:
-		if _, ok := args[0].(DB); ok {
-			panic(ErrMismatchArgs)
-		}
-		if db = GetDB(ctx); db == nil {
-			return ErrNoDB
-		}
+	} else {
 		value = args[0]
-	default:
-		if v, ok := args[0].(DB); ok {
-			db = v
-			value = args[1]
-		} else {
-			if db = GetDB(ctx); db == nil {
-				return ErrNoDB
-			}
-			value = args[0]
-		}
 	}
-
 	switch v := value.(type) {
 	case *map[string]interface{}:
 		return t.queryMap(ctx, db, v)
@@ -121,20 +100,11 @@ func (t Template) Query(ctx context.Context, args ...interface{}) error {
 	}
 }
 
-func (t Template) QueryRows(ctx context.Context, db ...DB) (*Rows, error) {
+func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
-	var finalDB DB
-	if len(db) > 0 {
-		finalDB = db[0]
-	} else {
-		finalDB = GetDB(ctx)
-	}
-	if finalDB == nil {
-		return nil, ErrNoDB
-	}
-	return t.queryRows(ctx, finalDB)
+	return t.queryRows(ctx, db)
 }
 
 func (t Template) queryRows(ctx context.Context, db DB) (*Rows, error) {
@@ -221,26 +191,20 @@ func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}
 	return rows.StructSlice(value)
 }
 
-func (t Template) Exec(ctx context.Context, db ...DB) error {
-	_, err := t.ExecResult(ctx, db...)
+func (t Template) Exec(ctx context.Context, db DB) error {
+	_, err := t.ExecResult(ctx, db)
 	return err
 }
 
-func (t Template) ExecResult(ctx context.Context, db ...DB) (sql.Result, error) {
+func (t Template) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
 	if t.IsEmptyOrWhitespace() {
 		return nil, ErrEmptyTemplate
 	}
-	var finalDB DB
-	if len(db) > 0 {
-		finalDB = db[0]
-	} else {
-		finalDB = GetDB(ctx)
-	}
-	if finalDB == nil {
+	if db == nil {
 		return nil, ErrNoDB
 	}
 	debugf("exec: %s\n", t)
-	result, err := finalDB.ExecContext(ctx, t.Format, t.Values...)
+	result, err := db.ExecContext(ctx, t.Format, t.Values...)
 	if err != nil {
 		return nil, err
 	}

@@ -22,7 +22,7 @@ type user struct {
 var db *sql.DB
 
 func init() {
-	bear.EnableDebug(false)
+	bear.Debug = true
 
 	var err error
 	db, err = openSqlite3("data.db")

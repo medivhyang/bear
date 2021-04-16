@@ -9,7 +9,7 @@ import (
 var (
 	TagKey               = "bear"
 	TagItemSeparator     = ","
-	TagKeyValueSeparator = ":"
+	TagKeyValueSeparator = "="
 
 	TagNestedKeyIgnore     = "-"
 	TagNestedKeyColumnName = "column"
@@ -60,7 +60,7 @@ func (f field) columnType(dialect string) string {
 	if typo := f.tag[TagNestedKeyTypeName]; typo != "" {
 		return typo
 	}
-	return LookupDialect(dialect).MapGoType(f.typo)
+	return LookupDialect(dialect).ToSQLType(f.typo)
 }
 
 func (f field) suffix() string {
