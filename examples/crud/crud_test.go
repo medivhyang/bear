@@ -22,6 +22,14 @@ func ExampleSelect() {
 }
 
 func ExampleSelectStruct() {
+	bear.B(
+		bear.SelectStruct("", user{}),
+		bear.Where("age = ?", 22),
+	)
+	bear.NewBuilder().Apply(
+		bear.SelectStruct("", user{}),
+		bear.Where("age = ?", 22),
+	).Build()
 	t := bear.Select("user", user{}).Where("id = ?", 1).Build()
 	fmt.Println(t)
 

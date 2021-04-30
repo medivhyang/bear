@@ -37,19 +37,19 @@ func Like(name string, args ...interface{}) bear.Template {
 
 func binary(op string, name string, args ...interface{}) bear.Template {
 	if len(args) == 0 {
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: binary: too less args")
 	}
 	switch firstArg := args[0].(type) {
 	case string:
 		return bear.NewTemplate(fmt.Sprintf("%s %s ?", name, op), args[1:]...)
 	case bear.Template:
-		if firstArg.IsEmptyOrWhitespace() {
+		if firstArg.Format == "" {
 			return bear.NewTemplate("")
 		} else {
 			return bear.NewTemplate(fmt.Sprintf("%s %s (?)", name, op), firstArg.Values...)
 		}
 	default:
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: binary: unsupported type")
 	}
 }
 
@@ -63,13 +63,13 @@ func NotIn(name string, args ...interface{}) bear.Template {
 
 func in(op string, name string, args ...interface{}) bear.Template {
 	if len(args) == 0 {
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: in: too less args")
 	}
 	switch firstArg := args[0].(type) {
 	case string:
 		return bear.NewTemplate(firstArg, args[1:]...)
 	case bear.Template:
-		if firstArg.IsEmptyOrWhitespace() {
+		if firstArg.Format == "" {
 			var holders []string
 			for i := 0; i < len(firstArg.Values); i++ {
 				holders = append(holders, "?")
@@ -95,7 +95,7 @@ func in(op string, name string, args ...interface{}) bear.Template {
 			}
 			return bear.NewTemplate(fmt.Sprintf("%s %s (%s)", name, op, strings.Join(holders, ",")), values...)
 		default:
-			panic(bear.ErrMismatchArgs)
+			panic("bear: expr: in: unsupported type")
 		}
 	}
 }
@@ -115,7 +115,7 @@ func between(op string, name string, left interface{}, right interface{}) bear.T
 	)
 	leftTemplate, ok := left.(bear.Template)
 	if ok {
-		if leftTemplate.IsEmptyOrWhitespace() {
+		if leftTemplate.Format == "" {
 			format = fmt.Sprintf("%s %s ?", name, op)
 		} else {
 			format = fmt.Sprintf("%s %s (%s)", name, op, leftTemplate.Format)
@@ -127,7 +127,7 @@ func between(op string, name string, left interface{}, right interface{}) bear.T
 	}
 	rightTemplate, ok := right.(bear.Template)
 	if ok {
-		if rightTemplate.IsEmptyOrWhitespace() {
+		if rightTemplate.Format == "" {
 			format += fmt.Sprintf(" and ?")
 		} else {
 			format += fmt.Sprintf(" and (%s)", rightTemplate.Format)
@@ -150,34 +150,36 @@ func NotExists(args ...interface{}) bear.Template {
 
 func exists(op string, args ...interface{}) bear.Template {
 	if len(args) == 0 {
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: exists: to less args")
 	}
 	switch firstArg := args[0].(type) {
 	case string:
 		return bear.NewTemplate(fmt.Sprintf("%s (%s)", op, firstArg), args[1:]...)
 	case bear.Template:
-		if firstArg.IsEmptyOrWhitespace() {
+		if firstArg.Format == "" {
 			return bear.NewTemplate("")
 		}
 		return bear.NewTemplate(fmt.Sprintf("%s (%s)", op, firstArg.Format), firstArg.Values...)
 	default:
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: exists: unsupported type")
 	}
 }
 
 func Not(args ...interface{}) bear.Template {
 	if len(args) == 0 {
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: not: too less args")
 	}
-	switch firstArg := args[0].(type) {
+	switch v := args[0].(type) {
 	case string:
-		return bear.NewTemplate(fmt.Sprintf("not (%s)", firstArg), args[1:]...)
+		return bear.NewTemplate(fmt.Sprintf("not (%s)", v), args[1:]...)
 	case bear.Template:
-		if firstArg.IsEmptyOrWhitespace() {
+		if v.Format == "" {
 			return bear.NewTemplate("")
 		}
-		return firstArg.WrapBracket().Prepend("not ")
+		v = v.Bracket()
+		v.Format += "not " + v.Format
+		return v
 	default:
-		panic(bear.ErrMismatchArgs)
+		panic("bear: expr: not: unsupported type")
 	}
 }

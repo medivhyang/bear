@@ -1,22 +1,25 @@
 package sqlite3
 
 import (
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/medivhyang/bear"
 	"reflect"
 )
 
+const Name = "sqlite3"
+
 func init() {
-	bear.RegisterDefaultDialect("sqlite3", &dialect{})
+	bear.RegisterDefaultDialect(Name, &Dialect{})
 }
 
-type dialect struct{}
+type Dialect struct{}
 
-func (d dialect) ToSQLType(t reflect.Type) string {
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
+func (d *Dialect) Mapping(rt reflect.Type) string {
+	if rt.Kind() == reflect.Ptr {
+		rt = rt.Elem()
 	}
-	switch t.Kind() {
+	switch rt.Kind() {
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Int, reflect.Bool:
@@ -26,10 +29,14 @@ func (d dialect) ToSQLType(t reflect.Type) string {
 	case reflect.String:
 		return "text"
 	default:
-		switch t.String() {
+		switch rt.String() {
 		case "time.Time":
 			return "datetime"
 		}
 		return ""
 	}
+}
+
+func (d *Dialect) Quote(s string) string {
+	return fmt.Sprintf("'%s'", s)
 }

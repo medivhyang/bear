@@ -5,14 +5,22 @@ import (
 	"database/sql"
 )
 
-type DB interface {
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+//type Raw interface {
+//	Query(query string, args ...interface{}) (*sql.Rows, error)
+//	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+//	Exec(query string, args ...interface{}) (sql.Result, error)
+//	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+//}
+
+type DB struct {
+	Raw *sql.DB
 }
 
-func Open(driverName string, dataSourceName string) (*sql.DB, error) {
+func NewDB(db *sql.DB) *DB {
+	return &DB{Raw: db}
+}
+
+func OpenDB(driverName string, dataSourceName string) (*DB, error) {
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
@@ -20,5 +28,19 @@ func Open(driverName string, dataSourceName string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-	return db, err
+	return NewDB(db), err
+}
+
+func (db *DB) Query(ctx context.Context, t Template, i interface{}) error {
+	debugf("bear: query: %s", t.String())
+	rows, err := db.Raw.QueryContext(ctx, t.Format, t.Values...)
+	if err != nil {
+		return err
+	}
+	return NewRows(rows).Bind(i)
+}
+
+func (db *DB) Exec(ctx context.Context, t Template) (sql.Result, error) {
+	debugf("bear: exec: %s", t.String())
+	return db.Raw.ExecContext(ctx, t.Format, t.Values...)
 }

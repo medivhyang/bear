@@ -1,11 +1,7 @@
 package bear
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -14,220 +10,47 @@ type Template struct {
 	Values []interface{}
 }
 
+func T(format string, values ...interface{}) Template {
+	return NewTemplate(format, values...)
+}
+
 func NewTemplate(format string, values ...interface{}) Template {
 	return Template{Format: format, Values: append([]interface{}{}, values...)}
 }
 
-func (t Template) Prepend(format string, values ...interface{}) Template {
-	t.Format = format + t.Format
-	if len(values) > 0 {
-		t.Values = append(append([]interface{}{}, values...), t.Values...)
+func (t Template) Append(others ...Template) Template {
+	t2 := NewTemplate(t.Format, t.Values...)
+	for _, o := range others {
+		t2.Format += o.Format
+		t2.AppendValues(o.Values...)
 	}
 	return t
 }
 
-func (t Template) Append(format string, values ...interface{}) Template {
-	t.Format += format
-	if len(values) > 0 {
-		t.Values = append(t.Values, values...)
-	}
+func (t Template) Appendf(format string, values ...interface{}) Template {
+	return NewTemplate(t.Format, t.AppendValues(values...))
+}
+
+func (t Template) AppendValues(values ...interface{}) Template {
+	t.Values = append(append([]interface{}{}, t.Values...), values...)
 	return t
 }
 
 func (t Template) Wrap(left string, right string) Template {
-	return t.Prepend(left).Append(right)
+	t.Format = left + t.Format + right
+	return t
 }
 
-func (t Template) WrapBracket() Template {
+func (t Template) Bracket() Template {
 	return t.Wrap("(", ")")
 }
 
-func (t Template) Join(other Template, sep ...string) Template {
-	finalSep := ""
-	if len(sep) > 0 {
-		finalSep = sep[0]
-	}
-	var newFormat string
-	if t.IsEmptyOrWhitespace() {
-		newFormat = other.Format
-	} else if other.IsEmptyOrWhitespace() {
-		newFormat = t.Format
-	} else {
-		newFormat = t.Format + finalSep + other.Format
-	}
-	newValues := append(t.Values, other.Values...)
-	return NewTemplate(newFormat, newValues...)
-}
-
-func (t Template) And(other Template) Template {
-	return t.Join(other, " and ")
-}
-
-func (t Template) Or(other Template) Template {
-	return t.Join(other, " or ")
-}
-
-func (t Template) Query(ctx context.Context, db DB, args ...interface{}) error {
-	var value interface{}
-	if len(args) == 0 {
-		panic(ErrMismatchArgs)
-	} else {
-		value = args[0]
-	}
-	switch v := value.(type) {
-	case *map[string]interface{}:
-		return t.queryMap(ctx, db, v)
-	default:
-		reflectValue := reflect.ValueOf(value)
-		for reflectValue.Kind() == reflect.Ptr {
-			reflectValue = reflectValue.Elem()
-		}
-		switch reflectValue.Kind() {
-		case reflect.Struct:
-			return t.queryStruct(ctx, db, value)
-		case reflect.Slice:
-			switch reflectValue.Type().Elem().Kind() {
-			case reflect.Map:
-				return t.queryMapSlice(ctx, db, value)
-			case reflect.Struct:
-				return t.queryStructSlice(ctx, db, value)
-			default:
-				return t.queryScalarSlice(ctx, db, value)
-			}
-		default:
-			return t.queryScalar(ctx, db, value)
-		}
-	}
-}
-
-func (t Template) QueryRows(ctx context.Context, db DB) (*Rows, error) {
-	if t.IsEmptyOrWhitespace() {
-		return nil, ErrEmptyTemplate
-	}
-	return t.queryRows(ctx, db)
-}
-
-func (t Template) queryRows(ctx context.Context, db DB) (*Rows, error) {
-	if t.IsEmptyOrWhitespace() {
-		return nil, ErrEmptyTemplate
-	}
-	debugf("query: %s\n", t)
-	rows, err := db.QueryContext(ctx, t.Format, t.Values...)
-	if err != nil {
-		return nil, err
-	}
-	return WrapRows(rows), nil
-}
-
-func (t Template) queryScalar(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.queryRows(ctx, db)
-	if err != nil {
-		return err
-	}
-	return rows.Scalar(value)
-}
-
-func (t Template) queryScalarSlice(ctx context.Context, db DB, values interface{}) error {
-	rows, err := t.queryRows(ctx, db)
-	if err != nil {
-		return err
-	}
-	return rows.ScalarSlice(values)
-}
-
-func (t Template) queryMap(ctx context.Context, db DB, value *map[string]interface{}) error {
-	reflectValue := reflect.ValueOf(value)
-	for reflectValue.Kind() == reflect.Ptr {
-		reflectValue = reflectValue.Elem()
-	}
-	if !reflectValue.CanSet() {
-		return errors.New("bear: template query map: can't set value")
-	}
-	rows, err := t.queryRows(ctx, db)
-	if err != nil {
-		return err
-	}
-	m, err := rows.Map()
-	if err != nil {
-		return err
-	}
-	reflectValue.Set(reflect.ValueOf(m))
-	return nil
-}
-
-func (t Template) queryMapSlice(ctx context.Context, db DB, value interface{}) error {
-	reflectValue := reflect.ValueOf(value)
-	for reflectValue.Kind() == reflect.Ptr {
-		reflectValue = reflectValue.Elem()
-	}
-	if !reflectValue.CanSet() {
-		return errors.New("bear: template query map slice: can't set value")
-	}
-	rows, err := t.queryRows(ctx, db)
-	if err != nil {
-		return err
-	}
-	slice, err := rows.MapSlice()
-	if err != nil {
-		return err
-	}
-	reflectValue.Set(reflect.ValueOf(slice))
-	return nil
-}
-
-func (t Template) queryStruct(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.queryRows(ctx, db)
-	if err != nil {
-		return err
-	}
-	return rows.Struct(value)
-}
-
-func (t Template) queryStructSlice(ctx context.Context, db DB, value interface{}) error {
-	rows, err := t.queryRows(ctx, db)
-	if err != nil {
-		return err
-	}
-	return rows.StructSlice(value)
-}
-
-func (t Template) Exec(ctx context.Context, db DB) error {
-	_, err := t.ExecResult(ctx, db)
-	return err
-}
-
-func (t Template) ExecResult(ctx context.Context, db DB) (sql.Result, error) {
-	if t.IsEmptyOrWhitespace() {
-		return nil, ErrEmptyTemplate
-	}
-	if db == nil {
-		return nil, ErrNoDB
-	}
-	debugf("exec: %s\n", t)
-	result, err := db.ExecContext(ctx, t.Format, t.Values...)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (t Template) IsEmpty() bool {
-	return t.Format == ""
-}
-
-func (t Template) IsEmptyOrWhitespace() bool {
-	return strings.TrimSpace(t.Format) == ""
-}
-
 func (t Template) String() string {
-	buffer := strings.Builder{}
-	buffer.WriteString(fmt.Sprintf("%q", t.Format))
-	if len(t.Values) == 0 {
-		return buffer.String()
-	}
+	b := strings.Builder{}
+	b.WriteString(fmt.Sprintf("%q", t.Format))
 	if len(t.Values) > 0 {
-		buffer.WriteString(": ")
-		buffer.WriteString(fmt.Sprintf("%#v", t.Values))
+		b.WriteString(": ")
+		b.WriteString(fmt.Sprintf("%#v", t.Values))
 	}
-	return buffer.String()
+	return b.String()
 }

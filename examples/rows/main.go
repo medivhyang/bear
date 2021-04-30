@@ -108,6 +108,24 @@ func demoStructSlice(db *sql.DB) {
 }
 
 func demoStruct(db *sql.DB) {
+	db2 := bear.NewDB(db)
+
+	db2.Exec(context.Background(), bear.BIB(
+		bear.BatchInsertMap("user", map[string]interface{}{"name": "medivh", "age": 22}),
+	))
+
+	db2.Query(context.Background(),
+		bear.T("select * from user where name = ? and age = ?", "Medivh", 22),
+		nil)
+
+	db2.Query(context.Background(), bear.B(
+		bear.SelectStruct("user", user{}),
+		bear.Where("name = ?", "Medivh"),
+		bear.Where("age > ?", 22),
+		bear.Paging(1, 10),
+		bear.OrderBy("created desc", "name desc"),
+	), nil)
+
 	var u user
 	if err := bear.Select("user", user{}).Query(context.Background(), db, &u); err != nil {
 		panic(err)
