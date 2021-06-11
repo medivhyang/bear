@@ -3,14 +3,11 @@ package bear
 import "fmt"
 
 func ExampleTableBuilderIncludeAndExclude() {
-	s := CreateTable("user", []ColumnSchema{
+	s := NewDDLBuilder().CreateTable("user", []DDLColumn{
 		{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
 		{Name: "name", Type: "varchar(512)", Suffix: "not null"},
 		{Name: "created", Type: "bigint", Suffix: "not null"},
-	}).
-		Include("id", "name").
-		Exclude("name").
-		Build()
+	}).Build()
 	fmt.Println(s.Format)
 
 	// Output:
@@ -20,7 +17,7 @@ func ExampleTableBuilderIncludeAndExclude() {
 }
 
 func ExampleTableBuilderAppendAndPrepend() {
-	s := CreateTable("user", []ColumnSchema{
+	s := CreateTable("user", []DDLColumn{
 		{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
 		{Name: "name", Type: "varchar(512)", Suffix: "not null"},
 		{Name: "created", Type: "bigint", Suffix: "not null"},

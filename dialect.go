@@ -11,18 +11,18 @@ var (
 	ErrInvalidDialectInstance = errors.New("bear: invalid dialect instance")
 )
 
-type Dialect interface {
+type DialectTranslator interface {
 	Mapping(rt reflect.Type) string
 	Quote(s string) string
 }
 
 var dialects sync.Map
 
-func RegisterDialect(name string, dialect Dialect) {
+func RegisterDialect(name string, dialect DialectTranslator) {
 	dialects.Store(name, dialect)
 }
 
-func RegisterDefaultDialect(name string, dialect Dialect) {
+func RegisterDefaultDialect(name string, dialect DialectTranslator) {
 	dialects.Store(name, dialect)
 	RegisterDialect(name, dialect)
 	SetDefaultDialect(name)
@@ -37,24 +37,24 @@ func SetDefaultDialect(name string) bool {
 	return false
 }
 
-func GetDialect(name string) Dialect {
+func GetDialect(name string) DialectTranslator {
 	v, ok := dialects.Load(name)
 	if !ok {
 		panic(ErrNotFoundDialect)
 	}
-	d, ok := v.(Dialect)
+	d, ok := v.(DialectTranslator)
 	if !ok {
 		panic(ErrInvalidDialectInstance)
 	}
 	return d
 }
 
-func LookupDialect(name string) Dialect {
+func LookupDialect(name string) DialectTranslator {
 	v, ok := dialects.Load(name)
 	if !ok {
 		return nil
 	}
-	d, ok := v.(Dialect)
+	d, ok := v.(DialectTranslator)
 	if !ok {
 		return nil
 	}

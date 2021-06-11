@@ -10,10 +10,6 @@ type Template struct {
 	Values []interface{}
 }
 
-func T(format string, values ...interface{}) Template {
-	return NewTemplate(format, values...)
-}
-
 func NewTemplate(format string, values ...interface{}) Template {
 	return Template{Format: format, Values: append([]interface{}{}, values...)}
 }

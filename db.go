@@ -6,8 +6,8 @@ import (
 )
 
 //type Raw interface {
-//	Query(query string, args ...interface{}) (*sql.Rows, error)
-//	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+//	Query(query string, args ...interface{}) (*sql.rows, error)
+//	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.rows, error)
 //	Exec(query string, args ...interface{}) (sql.Result, error)
 //	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 //}

@@ -29,43 +29,16 @@ func (cc Conditions) AppendMap(m map[string]interface{}) Conditions {
 	return cc.Append(t)
 }
 
-func (cc Conditions) AppendStruct(i interface{}) Conditions {
+func (cc Conditions) AppendStruct(i interface{}, ignoreZeroValue bool) Conditions {
 	m := ice.ParseStructToMap(i)
 	m2 := make(map[string]interface{}, len(m))
 	for k, v := range m {
-		if reflect.ValueOf(v).IsZero() {
+		if ignoreZeroValue && reflect.ValueOf(v).IsZero() {
 			continue
 		}
 		m2[k] = v
 	}
 	return cc.AppendMap(m2)
-}
-
-func (cc Conditions) AppendInterface(ii ...interface{}) Conditions {
-	if len(ii) == 0 {
-		return NewConditions()
-	}
-	rv := reflect.ValueOf(ii[0])
-	rv2 := ice.DeepUnrefAndNewValue(rv)
-	switch v := rv2.Interface().(type) {
-	case string:
-		return cc.Appendf(v, ii[1:]...)
-	case map[string]interface{}:
-		return cc.AppendMap(v)
-	case Template:
-		tt2 := make([]Template, len(ii))
-		for _, i := range ii {
-			tt2 = append(tt2, i.(Template))
-		}
-		return cc.Append(tt2...)
-	default:
-		switch rv2.Kind() {
-		case reflect.Struct:
-			return cc.AppendStruct(ii[0])
-		default:
-			panic("bear: conditions: append interface: unsupported type")
-		}
-	}
 }
 
 func (cc Conditions) Join(sep string, right, left string) Template {
@@ -78,7 +51,7 @@ func (cc Conditions) Join(sep string, right, left string) Template {
 		formats = append(formats, c.Format)
 		values = append(values, c.Values...)
 	}
-	return NewTemplate(right+strings.Join(formats, "sep")+left, values...)
+	return NewTemplate(right+strings.Join(formats, sep)+left, values...)
 }
 
 func (cc Conditions) And() Template {

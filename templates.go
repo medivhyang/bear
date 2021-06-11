@@ -36,7 +36,7 @@ func (tt Templates) Join(sep string, right, left string) Template {
 		ff = append(ff, c.Format)
 		vv = append(vv, c.Values...)
 	}
-	return NewTemplate(right+strings.Join(ff, "sep")+left, vv...)
+	return NewTemplate(right+strings.Join(ff, sep)+left, vv...)
 }
 
 func (tt Templates) Formats() []string {

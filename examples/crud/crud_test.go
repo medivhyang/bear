@@ -14,7 +14,7 @@ type user struct {
 }
 
 func ExampleSelect() {
-	t := bear.Select("user", "id", "name").Where("id = ?", 1).Build()
+	t := bear.NewBuilder().Select("user", "id", "name").Where("id = ?", 1).Build()
 	fmt.Println(t)
 
 	// Output:
@@ -22,15 +22,17 @@ func ExampleSelect() {
 }
 
 func ExampleSelectStruct() {
-	bear.B(
-		bear.SelectStruct("", user{}),
-		bear.Where("age = ?", 22),
-	)
-	bear.NewBuilder().Apply(
-		bear.SelectStruct("", user{}),
-		bear.Where("age = ?", 22),
+	bear.NewBuilder().SelectStruct("user", user{}).Where("id = ?", 1).Build()
+	bear.NewBuilder().Delete("user").Build()
+	bear.NewBuilder().
+		Update("user", map[string]interface{}{"name": "New Name"}).
+		Where("id = ?", 1).
+		Build()
+	bear.NewBuilder(
+		bear.Dialect("mysql"),
+		bear.SelectStruct("user", user{}),
+		bear.Where(""),
 	).Build()
-	t := bear.Select("user", user{}).Where("id = ?", 1).Build()
 	fmt.Println(t)
 
 	// Output:
@@ -38,7 +40,7 @@ func ExampleSelectStruct() {
 }
 
 func ExampleInsert() {
-	t := bear.Insert("user", map[string]interface{}{
+	t := bear.NewBuilder().Insert("user", map[string]interface{}{
 		"id":      1,
 		"name":    "alice",
 		"created": time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC).Unix(),
@@ -50,7 +52,7 @@ func ExampleInsert() {
 }
 
 func ExampleInsertStruct() {
-	t := bear.Insert("user", user{
+	t := bear.NewBuilder().InsertStruct("user", user{
 		ID:      1,
 		Name:    "bob",
 		Created: time.Date(2020, 9, 11, 0, 0, 0, 0, time.UTC).Unix(),
@@ -62,7 +64,7 @@ func ExampleInsertStruct() {
 }
 
 func ExampleUpdate() {
-	t := bear.Update("user", map[string]interface{}{"name": "new alice"}).
+	t := bear.NewBuilder().Update("user", map[string]interface{}{"name": "new alice"}).
 		Where("id = ?", 1).
 		Build()
 	fmt.Println(t)
@@ -72,7 +74,7 @@ func ExampleUpdate() {
 }
 
 func ExampleUpdateStruct() {
-	t := bear.Update("user", user{Name: "new alice"}, true).
+	t := bear.NewBuilder().UpdateStruct("user", user{Name: "new alice"}, true).
 		Where("id = ?", 1).
 		Build()
 	fmt.Println(t)
@@ -82,7 +84,7 @@ func ExampleUpdateStruct() {
 }
 
 func ExampleDelete() {
-	t := bear.Delete("user").Where("id = ?", 1).Build()
+	t := bear.NewBuilder().Delete("user").Where("id = ?", 1).Build()
 	fmt.Println(t)
 
 	// Output:
