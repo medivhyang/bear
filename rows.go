@@ -2,11 +2,10 @@ package bear
 
 import (
 	"database/sql"
-	"errors"
 	"reflect"
 
+	"github.com/medivhyang/duck/ice"
 	"github.com/medivhyang/duck/naming"
-	"github.com/medivhyang/ice"
 )
 
 type Rows struct {
@@ -95,11 +94,11 @@ func (r *Rows) Scalar(value interface{}) error {
 func (r *Rows) ScalarSlice(slice interface{}) error {
 	reflectValue := reflect.ValueOf(slice)
 	if reflectValue.Kind() != reflect.Ptr {
-		return errors.New("bear: scan rows to values: require pointer type")
+		return errorf("scan rows to values", "require pointer type")
 	}
 	reflectValue = reflectValue.Elem()
 	if reflectValue.Kind() != reflect.Slice {
-		return errors.New("bear: scan rows to values: require slice type")
+		return errorf("scan rows to values", "require slice type")
 	}
 
 	elemType := reflectValue.Type().Elem()
@@ -157,7 +156,7 @@ func (r *Rows) MapSlice() ([]map[string]interface{}, error) {
 		values[i] = &v
 	}
 
-	var list []map[string]interface{}
+	var items []map[string]interface{}
 	for r.Raw.Next() {
 		if err := r.Raw.Scan(values...); err != nil {
 			return nil, err
@@ -166,37 +165,29 @@ func (r *Rows) MapSlice() ([]map[string]interface{}, error) {
 		for i, v := range values {
 			item[columns[i]] = *v.(*interface{})
 		}
-		list = append(list, item)
+		items = append(items, item)
 	}
 
 	if err := r.Raw.Close(); err != nil {
 		return nil, err
 	}
 
-	return list, nil
+	return items, nil
 }
 
 func (r *Rows) Struct(i interface{}) error {
 	rv := reflect.ValueOf(i)
 	if rv.Kind() != reflect.Ptr {
-		return errors.New("bear: rows: struct: require pointer type")
+		return errorf("rows to struct", "require pointer type")
 	}
 	cc, err := r.Raw.Columns()
 	if err != nil {
 		return err
 	}
 	vv := make([]interface{}, 0, len(cc))
-	fieldsMap := ice.ParseStructToMap(i)
-	nameMap := ice.ParseStructChildTags(i, TagKey, TagItemSep, TagKVSep, TagChildKeyName)
-	ice.ReplaceMapStringKeyFunc(fieldsMap, func(s string) string {
-		if v, ok := nameMap[s][TagChildKeyName]; ok {
-			return v
-		} else {
-			return naming.ToSnake(s)
-		}
-	})
+	fieldMap := r.getFieldMap(i)
 	for _, c := range cc {
-		if f, ok := fieldsMap[c]; ok {
+		if f, ok := fieldMap[c]; ok {
 			vv = append(vv, f)
 		} else {
 			var tmp interface{}
@@ -218,30 +209,22 @@ func (r *Rows) Struct(i interface{}) error {
 func (r *Rows) StructSlice(i interface{}) error {
 	rv := reflect.ValueOf(i)
 	if rv.Kind() != reflect.Ptr {
-		return errors.New("bear: rows: struct slice: require pointer type")
+		return errorf("rows to struct slice", "require pointer type")
 	}
 	rv2 := ice.DeepUnrefAndNewValue(rv)
 	if rv2.Kind() != reflect.Slice {
-		return errors.New("bear: rows: struct slice: require slice type")
+		return errorf("rows to struct slice", "require slice type")
 	}
 	cc, err := r.Raw.Columns()
 	if err != nil {
 		return err
 	}
 	vv := make([]interface{}, 0, len(cc))
-	nameMap := ice.ParseStructChildTags(i, TagKey, TagItemSep, TagKVSep, TagChildKeyName)
 	for r.Raw.Next() {
 		item := reflect.New(rv2.Type().Elem())
-		fieldsMap := ice.ParseStructToMap(item)
-		ice.ReplaceMapStringKeyFunc(fieldsMap, func(s string) string {
-			if v, ok := nameMap[s][TagChildKeyName]; ok {
-				return v
-			} else {
-				return naming.ToSnake(s)
-			}
-		})
+		fieldMap := r.getFieldMap(item)
 		for _, c := range cc {
-			if v, ok := fieldsMap[c]; ok {
+			if v, ok := fieldMap[c]; ok {
 				vv = append(vv, v)
 			} else {
 				var temp interface{}
@@ -257,4 +240,29 @@ func (r *Rows) StructSlice(i interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func (*Rows) getFieldMap(i interface{}) map[string]interface{} {
+	fieldMap := ice.ParseStructToMap(i)
+	copyFieldMap := make(map[string]interface{}, len(fieldMap))
+	for k, v := range fieldMap {
+		copyFieldMap[k] = v
+	}
+	fieldTagMap := ice.ParseStructChildTags(i, TagKey, TagItemSep, TagKVSep, TagChildKeyName)
+	for name, value := range fieldMap {
+		tags := fieldTagMap[name]
+		if tags != nil {
+			s := tags[TagChildKeyName]
+			if s != "" {
+				fieldMap[s] = value
+				delete(fieldMap, name)
+				continue
+			}
+		}
+		if naming.ToSnake(name) != name {
+			fieldMap[naming.ToSnake(name)] = value
+			delete(fieldMap, name)
+		}
+	}
+	return fieldMap
 }

@@ -2,7 +2,7 @@ package bear
 
 type BuilderOptionFunc func(b *Builder)
 
-func Dialect(d string) BuilderOptionFunc {
+func WithDialect(d string) BuilderOptionFunc {
 	return func(b *Builder) {
 		b.Dialect(d)
 	}
@@ -41,6 +41,12 @@ func Delete(table string) BuilderOptionFunc {
 func Where(format string, values ...interface{}) BuilderOptionFunc {
 	return func(b *Builder) {
 		b.Where(format, values...)
+	}
+}
+
+func WhereIn(column string, values ...interface{}) BuilderOptionFunc {
+	return func(b *Builder) {
+		b.WhereIn(column, values...)
 	}
 }
 

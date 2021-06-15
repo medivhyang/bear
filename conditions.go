@@ -2,9 +2,10 @@ package bear
 
 import (
 	"fmt"
-	"github.com/medivhyang/ice"
 	"reflect"
 	"strings"
+
+	"github.com/medivhyang/duck/ice"
 )
 
 type Conditions []Template

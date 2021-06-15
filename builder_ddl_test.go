@@ -3,11 +3,14 @@ package bear
 import "fmt"
 
 func ExampleTableBuilderIncludeAndExclude() {
-	s := NewDDLBuilder().CreateTable("user", []DDLColumn{
-		{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
-		{Name: "name", Type: "varchar(512)", Suffix: "not null"},
-		{Name: "created", Type: "bigint", Suffix: "not null"},
-	}).Build()
+	s := NewDDLBuilder().CreateTable(DDLTable{
+		Name: "user",
+		Columns: []DDLColumn{
+			{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
+			{Name: "name", Type: "varchar(512)", Suffix: "not null"},
+			{Name: "created", Type: "bigint", Suffix: "not null"},
+		},
+	}, true).Build()
 	fmt.Println(s.Format)
 
 	// Output:
@@ -17,13 +20,14 @@ func ExampleTableBuilderIncludeAndExclude() {
 }
 
 func ExampleTableBuilderAppendAndPrepend() {
-	s := CreateTable("user", []DDLColumn{
-		{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
-		{Name: "name", Type: "varchar(512)", Suffix: "not null"},
-		{Name: "created", Type: "bigint", Suffix: "not null"},
-	}).
-		Indent("", "  ").
-		Build()
+	s := NewDDLBuilder().CreateTable(DDLTable{
+		Name: "user",
+		Columns: []DDLColumn{
+			{Name: "id", Type: "varchar(64)", Suffix: "primary key"},
+			{Name: "name", Type: "varchar(512)", Suffix: "not null"},
+			{Name: "created", Type: "bigint", Suffix: "not null"},
+		},
+	}, true).Pretty("", "  ").Build()
 	fmt.Println(s.Format)
 
 	// Output:

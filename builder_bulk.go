@@ -2,7 +2,8 @@ package bear
 
 import (
 	"fmt"
-	"github.com/medivhyang/ice"
+	"github.com/medivhyang/duck/ice"
+	"github.com/medivhyang/duck/slices"
 	"sort"
 	"strings"
 )
@@ -48,38 +49,36 @@ func (b *BulkBuilder) Table(name string) *BulkBuilder {
 	return b
 }
 
-func (b *BulkBuilder) Append(rows ...Templates) *BulkBuilder {
-	b.rows = append(b.rows, rows...)
+func (b *BulkBuilder) Append(row Templates) *BulkBuilder {
+	b.rows = append(b.rows, row)
 	return b
 }
 
-func (b *BulkBuilder) AppendMaps(rows ...map[string]interface{}) *BulkBuilder {
-	if len(rows) == 0 {
-		return b
+func (b *BulkBuilder) AppendMap(row map[string]interface{}) *BulkBuilder {
+	keys := make([]string, 0, len(row))
+	for key := range row {
+		keys = append(keys, key)
 	}
-	firstRow := rows[0]
-	kk := make([]string, 0, len(firstRow))
-	for k := range firstRow {
-		kk = append(kk, k)
+	sort.Strings(keys)
+
+	tt := NewTemplates()
+	for _, k := range keys {
+		tt.Appendf(k, row[k])
 	}
-	sort.Strings(kk)
-	for _, r := range rows {
-		tt := NewTemplates()
-		for _, k := range kk {
-			tt.Appendf(k, r[k])
-		}
-		if len(tt) == 0 {
+	b.rows = append(b.rows, tt)
+
+	return b
+}
+
+func (b *BulkBuilder) AppendStruct(i interface{}, ignoreFields ...string) *BulkBuilder {
+	m := ice.ParseStructToMap(i)
+	m2 := make(map[string]interface{}, len(m))
+	for name, value := range m {
+		if slices.ContainStrings(ignoreFields, name) {
 			continue
 		}
-		b.rows = append(b.rows, tt)
+		m2[name] = value
 	}
+	b.AppendMap(m2)
 	return b
-}
-
-func (b *BulkBuilder) AppendStructs(rows ...interface{}) *BulkBuilder {
-	mm := make([]map[string]interface{}, len(rows))
-	for _, r := range rows {
-		mm = append(mm, ice.ParseStructToMap(r))
-	}
-	return b.AppendMaps(mm...)
 }

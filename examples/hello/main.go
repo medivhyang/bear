@@ -1,14 +1,3 @@
-# Bear
-
-A go language sql builder.
-
-## Why Bear
-
-Lightweight, lower dependence and efficient.
-
-## Quick Start
-
-```go
 package main
 
 import (
@@ -22,6 +11,3 @@ func main() {
 	s := bear.NewBuilder().Select("user", "id", "name", "age").Build()
 	fmt.Println(s)
 }
-```
-
-> More examples refer to `/examples`

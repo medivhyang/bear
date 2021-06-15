@@ -47,21 +47,28 @@ func (b *Builder) Apply(options ...BuilderOptionFunc) *Builder {
 }
 
 func (b *Builder) Build() Template {
+	d := GetDialect(b.dialect)
 	t := Template{}
 	switch b.action {
 	case actionSelect:
+		columns := make([]string, 0, len(b.columns.Formats()))
+		for _, c := range b.columns.Formats() {
+			columns = append(columns, d.Quote(c))
+		}
 		if b.distinct {
 			t = t.Appendf(fmt.Sprintf("select distinct %s from %s",
-				strings.Join(b.columns.Formats(), ","),
-				GetDialect(b.dialect).Quote(b.table.Format),
+				strings.Join(columns, ","),
+				d.Quote(b.table.Format),
 			), append(append([]interface{}{}, b.columns.Values()...), b.table.Values...))
 		} else {
 			t = t.Appendf(fmt.Sprintf("select %s from %s",
-				strings.Join(b.columns.Formats(), ","),
-				b.table,
+				strings.Join(columns, ","),
+				d.Quote(b.table.Format),
 			), b.columns.Values()...)
 		}
-		t = t.Append(b.joins.Join(" ", "", ""))
+		if len(b.joins) > 0 {
+			t = t.Append(b.joins.Join(" ", "", ""))
+		}
 		if len(b.where) > 0 {
 			t = t.Appendf(" where ").Append(b.where.And())
 		}
@@ -122,11 +129,14 @@ func (b *Builder) Select(table string, columns ...string) *Builder {
 }
 
 func (b *Builder) SelectStruct(table string, i interface{}, ignoreFields ...string) *Builder {
-	cc := parseStructColumns(i, ignoreFields...)
+	names := ice.GetStructFieldNames(i)
 	b.action = actionSelect
 	b.table = NewTemplate(table)
-	for _, c := range cc {
-		b.columns = append(b.columns, NewTemplate(c))
+	for _, name := range names {
+		if slices.ContainStrings(ignoreFields, name) {
+			continue
+		}
+		b.columns = append(b.columns, NewTemplate(name))
 	}
 	return b
 }
@@ -188,6 +198,19 @@ func (b *Builder) Delete(table string) *Builder {
 }
 
 func (b *Builder) Where(format string, values ...interface{}) *Builder {
+	b.where.Appendf(format, values...)
+	return b
+}
+
+func (b *Builder) WhereIn(column string, values ...interface{}) *Builder {
+	if len(values) == 0 {
+		values = append(values, "null")
+	}
+	holders := make([]string, len(values))
+	for i := 0; i < len(values); i++ {
+		holders = append(holders, "?")
+	}
+	format := fmt.Sprintf("%s in (%s)", GetDialect(b.dialect).Quote(column), strings.Join(holders, ", "))
 	b.where.Appendf(format, values...)
 	return b
 }

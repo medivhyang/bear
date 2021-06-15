@@ -33,23 +33,14 @@ type DDLColumn struct {
 }
 
 type DDLBuilder struct {
-	action  ddlAction
-	dialect string
-	table   string
-	columns []DDLColumn
-	//include          map[string]bool
-	//exclude          map[string]bool
-	//prepends         []Template
-	//appends          []Template
-	//innerPrepends    []Template
-	//innerAppends     []Template
-	//newline bool
-	pretty bool
-	prefix string
-	indent string
-	//onlyDropIfExists bool
-	//onCreateIfExists bool
+	action      ddlAction
+	dialect     string
+	table       string
+	columns     []DDLColumn
 	checkExists bool
+	pretty      bool
+	prefix      string
+	indent      string
 }
 
 func NewDDLBuilder(dialect ...string) *DDLBuilder {
