@@ -1,13 +1,10 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
-github.com/cheekybits/genny v1.0.0/go.mod h1:+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wXkRAgjxjQ=
 github.com/mattn/go-sqlite3 v1.14.0 h1:mLyGNKR8+Vv9CAU7PphKa2hkEqxxhn8i32J6FPj1/QA=
 github.com/mattn/go-sqlite3 v1.14.0/go.mod h1:JIl7NbARA7phWnGvh0LKTyg7S9BA+6gx71ShQilpsus=
-github.com/medivhyang/duck v0.0.8 h1:rPhs7iNocfs96F2KsOWa6MEezbA70lzxlRblURiSvlE=
-github.com/medivhyang/duck v0.0.8/go.mod h1:KEBswG+K6ZVT0reoKIJmB2rhQ3NyEoP/qOuejs8DkHc=
-github.com/medivhyang/ice v0.0.5 h1:oPMYQ1ihLPCaY+ozKxEMOp+cOM55en4axJUbqrrb/0M=
-github.com/medivhyang/ice v0.0.5/go.mod h1:kOQHybl4KN6MA7n5bcbWxOx9tWySeOKkVOUGiMUWJ2Y=
+github.com/medivhyang/duck v0.0.9 h1:FjVUsZh8iN3pggFExyYdhERi2kKZtZxFv7zNrTZ0xw8=
+github.com/medivhyang/duck v0.0.9/go.mod h1:0ZeK6Q76/EA7+w8kLHBGziMnEcTv7gbFuLv3HPU2sRY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180218175443-cbe0f9307d01/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20200202094626-16171245cfb2/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
