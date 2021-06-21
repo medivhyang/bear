@@ -2,10 +2,11 @@ package bear
 
 import (
 	"fmt"
-	"github.com/medivhyang/duck/ice"
-	"github.com/medivhyang/duck/slices"
 	"sort"
 	"strings"
+
+	"github.com/medivhyang/duck/reflectutil"
+	"github.com/medivhyang/duck/slices"
 )
 
 type BulkBuilder struct {
@@ -71,7 +72,7 @@ func (b *BulkBuilder) AppendMap(row map[string]interface{}) *BulkBuilder {
 }
 
 func (b *BulkBuilder) AppendStruct(i interface{}, ignoreFields ...string) *BulkBuilder {
-	m := ice.ParseStructToMap(i)
+	m := reflectutil.ParseStructToMap(i)
 	m2 := make(map[string]interface{}, len(m))
 	for name, value := range m {
 		if slices.ContainStrings(ignoreFields, name) {

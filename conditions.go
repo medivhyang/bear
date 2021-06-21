@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/medivhyang/duck/ice"
+	"github.com/medivhyang/duck/reflectutil"
 )
 
 type Conditions []Template
@@ -31,7 +31,7 @@ func (cc Conditions) AppendMap(m map[string]interface{}) Conditions {
 }
 
 func (cc Conditions) AppendStruct(i interface{}, ignoreZeroValue bool) Conditions {
-	m := ice.ParseStructToMap(i)
+	m := reflectutil.ParseStructToMap(i)
 	m2 := make(map[string]interface{}, len(m))
 	for k, v := range m {
 		if ignoreZeroValue && reflect.ValueOf(v).IsZero() {

@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"reflect"
 
-	"github.com/medivhyang/duck/ice"
 	"github.com/medivhyang/duck/naming"
+	"github.com/medivhyang/duck/reflectutil"
 )
 
 type Rows struct {
@@ -38,7 +38,7 @@ func (r *Rows) Bind(i interface{}) error {
 	if rv.Kind() != reflect.Ptr {
 		panic("bear: rows: bind: require pointer type")
 	}
-	rv2 := ice.DeepUnrefAndNewValue(rv)
+	rv2 := reflectutil.DeepUnrefAndNewValue(rv)
 	switch rv2.Interface().(type) {
 	case map[string]interface{}:
 		if !rv.CanSet() {
@@ -211,7 +211,7 @@ func (r *Rows) StructSlice(i interface{}) error {
 	if rv.Kind() != reflect.Ptr {
 		return newError("rows to struct slice", "require pointer type")
 	}
-	rv2 := ice.DeepUnrefAndNewValue(rv)
+	rv2 := reflectutil.DeepUnrefAndNewValue(rv)
 	if rv2.Kind() != reflect.Slice {
 		return newError("rows to struct slice", "require slice type")
 	}
@@ -243,12 +243,12 @@ func (r *Rows) StructSlice(i interface{}) error {
 }
 
 func (*Rows) getFieldMap(i interface{}) map[string]interface{} {
-	fieldMap := ice.ParseStructToMap(i)
+	fieldMap := reflectutil.ParseStructToMap(i)
 	copyFieldMap := make(map[string]interface{}, len(fieldMap))
 	for k, v := range fieldMap {
 		copyFieldMap[k] = v
 	}
-	fieldTagMap := ice.ParseStructChildTags(i, TagKey, TagItemSep, TagKVSep, TagChildKeyName)
+	fieldTagMap := reflectutil.ParseStructChildTags(i, TagKey, TagItemSep, TagKVSep, TagChildKeyName)
 	for name, value := range copyFieldMap {
 		tags := fieldTagMap[name]
 		if tags != nil {

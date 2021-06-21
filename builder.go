@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/medivhyang/duck/ice"
+	"github.com/medivhyang/duck/reflectutil"
 	"github.com/medivhyang/duck/slices"
 )
 
@@ -139,7 +139,7 @@ func (b *Builder) Select(table string, columns ...string) *Builder {
 }
 
 func (b *Builder) SelectStruct(table string, i interface{}, ignoreFields ...string) *Builder {
-	names := ice.GetStructFieldNames(i)
+	names := reflectutil.GetStructFieldNames(i)
 	b.action = actionSelect
 	b.table = NewTemplate(table)
 	for _, name := range names {
@@ -163,7 +163,7 @@ func (b *Builder) Insert(table string, columns map[string]interface{}) *Builder 
 func (b *Builder) InsertStruct(table string, i interface{}, ignoreZeroValue bool, ignoreFields ...string) *Builder {
 	b.action = actionInsert
 	b.table = NewTemplate(table)
-	m := ice.ParseStructToMap(i)
+	m := reflectutil.ParseStructToMap(i)
 	for name, value := range m {
 		if ignoreZeroValue && reflect.ValueOf(value).IsZero() {
 			continue
@@ -188,7 +188,7 @@ func (b *Builder) Update(table string, columns map[string]interface{}) *Builder 
 func (b *Builder) UpdateStruct(table string, i interface{}, ignoreZeroValue bool, ignoreFields ...string) *Builder {
 	b.action = actionUpdate
 	b.table = NewTemplate(table)
-	m := ice.ParseStructToMap(i)
+	m := reflectutil.ParseStructToMap(i)
 	for name, value := range m {
 		if ignoreZeroValue && reflect.ValueOf(value).IsZero() {
 			continue
