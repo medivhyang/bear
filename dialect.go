@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrNotFoundDialect        = errorf("dialect", "not found")
-	ErrInvalidDialectInstance = errorf("dialect", "invalid instance")
+	ErrNotFoundDialect = newError("dialect", "not found")
+	ErrInvalidDialect  = newError("dialect", "invalid")
 )
 
 type Dialect interface {
@@ -43,9 +43,13 @@ func GetDialect(name string) Dialect {
 	}
 	d, ok := v.(Dialect)
 	if !ok {
-		panic(ErrInvalidDialectInstance)
+		panic(ErrInvalidDialect)
 	}
 	return d
+}
+
+func GetDefaultDialect() Dialect {
+	return GetDialect("")
 }
 
 func LookupDialect(name string) Dialect {

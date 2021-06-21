@@ -1,6 +1,8 @@
 package bear
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -70,13 +72,13 @@ func (b *Builder) Build() Template {
 			t = t.Append(b.joins.Join(" ", "", ""))
 		}
 		if len(b.where) > 0 {
-			t = t.Appendf(" where ").Append(b.where.And())
+			t = t.Appendf(" where ").Append(b.where.JoinAnd())
 		}
 		if len(b.groupBy) > 0 {
 			t = t.Appendf(fmt.Sprintf(" group by %s", strings.Join(b.groupBy, ",")))
 		}
 		if len(b.having) > 0 {
-			t = t.Appendf(" having ").Append(b.having.And())
+			t = t.Appendf(" having ").Append(b.having.JoinAnd())
 		}
 		if len(b.orderBy) > 0 {
 			t = t.Appendf(fmt.Sprintf(" order by %s", strings.Join(b.orderBy, ", ")))
@@ -91,7 +93,7 @@ func (b *Builder) Build() Template {
 			strings.Join(repeatString("?", len(b.columns)), ","),
 		), b.columns.Values()...)
 		if len(b.where) > 0 {
-			t = t.Appendf(" where ").Append(b.where.And())
+			t = t.Appendf(" where ").Append(b.where.JoinAnd())
 		}
 	case actionUpdate:
 		pairs := make([]string, 0, len(b.columns))
@@ -103,15 +105,23 @@ func (b *Builder) Build() Template {
 			strings.Join(pairs, ","),
 		), b.columns.Values()...)
 		if len(b.where) > 0 {
-			t = t.Appendf(" where ").Append(b.where.And())
+			t = t.Appendf(" where ").Append(b.where.JoinAnd())
 		}
 	case actionDelete:
 		t = t.Appendf(fmt.Sprintf("delete from %s", b.table))
 		if len(b.where) > 0 {
-			t = t.Appendf(" where ").Append(b.where.And())
+			t = t.Appendf(" where ").Append(b.where.JoinAnd())
 		}
 	}
 	return t
+}
+
+func (b *Builder) Query(ctx context.Context, db DB, i interface{}) error {
+	return db.Query(ctx, b.Build(), i)
+}
+
+func (b *Builder) Exec(ctx context.Context, db DB) (sql.Result, error) {
+	return db.Exec(ctx, b.Build())
 }
 
 func (b *Builder) Dialect(d string) *Builder {

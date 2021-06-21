@@ -42,6 +42,18 @@ func (cc Conditions) AppendStruct(i interface{}, ignoreZeroValue bool) Condition
 	return cc.AppendMap(m2)
 }
 
+func (cc Conditions) AppendIn(column string, values ...interface{}) Conditions {
+	if len(values) == 0 {
+		values = append(values, "null")
+	}
+	holders := make([]string, len(values))
+	for i := 0; i < len(values); i++ {
+		holders = append(holders, "?")
+	}
+	format := fmt.Sprintf("%s in (%s)", GetDefaultDialect().Quote(column), strings.Join(holders, ", "))
+	return cc.Appendf(format, values...)
+}
+
 func (cc Conditions) Join(sep string, right, left string) Template {
 	if len(cc) == 0 {
 		return Template{}
@@ -55,10 +67,10 @@ func (cc Conditions) Join(sep string, right, left string) Template {
 	return NewTemplate(right+strings.Join(formats, sep)+left, values...)
 }
 
-func (cc Conditions) And() Template {
+func (cc Conditions) JoinAnd() Template {
 	return cc.Join(" and ", "(", ")")
 }
 
-func (cc Conditions) Or() Template {
+func (cc Conditions) JoinOr() Template {
 	return cc.Join(" or ", "(", ")")
 }

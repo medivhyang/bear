@@ -9,6 +9,7 @@ import (
 var (
 	debugFlag             = false
 	debugWriter io.Writer = os.Stdout
+	logPrefix             = "bear: "
 )
 
 func Debug(b bool) {
@@ -26,14 +27,14 @@ func debugf(module string, format string, args ...interface{}) {
 	if debugWriter == nil {
 		return
 	}
-	s := fmt.Sprintf("%s: %s: %s", "bear", module, fmt.Sprintf(format, args...))
+	s := fmt.Sprintf("%s%s: %s", logPrefix, module, fmt.Sprintf(format, args...))
 	if _, err := fmt.Fprintln(debugWriter, s); err != nil {
 		panic(err)
 	}
 }
 
-func errorf(module string, format string, args ...interface{}) error {
-	return fmt.Errorf("%s: %s: %s", "deer", module, fmt.Sprintf(format, args...))
+func newError(module string, format string, args ...interface{}) error {
+	return fmt.Errorf("%s%s: %s", logPrefix, module, fmt.Sprintf(format, args...))
 }
 
 func repeatString(s string, n int) []string {

@@ -94,11 +94,11 @@ func (r *Rows) Scalar(value interface{}) error {
 func (r *Rows) ScalarSlice(slice interface{}) error {
 	reflectValue := reflect.ValueOf(slice)
 	if reflectValue.Kind() != reflect.Ptr {
-		return errorf("scan rows to values", "require pointer type")
+		return newError("scan rows to values", "require pointer type")
 	}
 	reflectValue = reflectValue.Elem()
 	if reflectValue.Kind() != reflect.Slice {
-		return errorf("scan rows to values", "require slice type")
+		return newError("scan rows to values", "require slice type")
 	}
 
 	elemType := reflectValue.Type().Elem()
@@ -178,7 +178,7 @@ func (r *Rows) MapSlice() ([]map[string]interface{}, error) {
 func (r *Rows) Struct(i interface{}) error {
 	rv := reflect.ValueOf(i)
 	if rv.Kind() != reflect.Ptr {
-		return errorf("rows to struct", "require pointer type")
+		return newError("rows to struct", "require pointer type")
 	}
 	cc, err := r.Raw.Columns()
 	if err != nil {
@@ -209,11 +209,11 @@ func (r *Rows) Struct(i interface{}) error {
 func (r *Rows) StructSlice(i interface{}) error {
 	rv := reflect.ValueOf(i)
 	if rv.Kind() != reflect.Ptr {
-		return errorf("rows to struct slice", "require pointer type")
+		return newError("rows to struct slice", "require pointer type")
 	}
 	rv2 := ice.DeepUnrefAndNewValue(rv)
 	if rv2.Kind() != reflect.Slice {
-		return errorf("rows to struct slice", "require slice type")
+		return newError("rows to struct slice", "require slice type")
 	}
 	cc, err := r.Raw.Columns()
 	if err != nil {
@@ -249,7 +249,7 @@ func (*Rows) getFieldMap(i interface{}) map[string]interface{} {
 		copyFieldMap[k] = v
 	}
 	fieldTagMap := ice.ParseStructChildTags(i, TagKey, TagItemSep, TagKVSep, TagChildKeyName)
-	for name, value := range fieldMap {
+	for name, value := range copyFieldMap {
 		tags := fieldTagMap[name]
 		if tags != nil {
 			s := tags[TagChildKeyName]
