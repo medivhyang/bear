@@ -41,6 +41,13 @@ func (t Template) Bracket() Template {
 	return t.Wrap("(", ")")
 }
 
+func (t Template) FirstValue() interface{} {
+	if len(t.Values) > 0 {
+		return t.Values[0]
+	}
+	return nil
+}
+
 func (t Template) String() string {
 	b := strings.Builder{}
 	b.WriteString(fmt.Sprintf("%q", t.Format))
@@ -51,13 +58,17 @@ func (t Template) String() string {
 	return b.String()
 }
 
+func (t Template) Empty() bool {
+	return t.Format == "" && len(t.Values) == 0
+}
+
 type Templates []Template
 
 func NewTemplates(tt ...Template) Templates {
 	return tt
 }
 
-func PlainTemplates(ss ...string) Templates {
+func NewPlainTemplates(ss ...string) Templates {
 	tt := make([]Template, 0, len(ss))
 	for _, s := range ss {
 		tt = append(tt, NewTemplate(s))

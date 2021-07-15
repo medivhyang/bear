@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+type DDLBuilder struct {
+	action      ddlAction
+	dialect     string
+	table       string
+	columns     []Column
+	checkExists bool
+	pretty      bool
+	prefix      string
+	indent      string
+}
+
 type ddlAction string
 
 const (
@@ -21,26 +32,15 @@ func (a ddlAction) Valid() bool {
 	}
 }
 
-type DDLTable struct {
+type Table struct {
 	Name    string
-	Columns []DDLColumn
+	Columns []Column
 }
 
-type DDLColumn struct {
+type Column struct {
 	Name   string
 	Type   string
 	Suffix string
-}
-
-type DDLBuilder struct {
-	action      ddlAction
-	dialect     string
-	table       string
-	columns     []DDLColumn
-	checkExists bool
-	pretty      bool
-	prefix      string
-	indent      string
 }
 
 func NewDDLBuilder(dialect ...string) *DDLBuilder {
@@ -68,7 +68,7 @@ func (b *DDLBuilder) Compact() *DDLBuilder {
 	return b
 }
 
-func (b *DDLBuilder) CreateTable(table DDLTable, checkExists bool) *DDLBuilder {
+func (b *DDLBuilder) CreateTable(table Table, checkExists bool) *DDLBuilder {
 	b.action = ddlActionCreateTable
 	b.table = table.Name
 	b.columns = table.Columns

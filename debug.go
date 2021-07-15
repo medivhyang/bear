@@ -36,11 +36,3 @@ func debugf(module string, format string, args ...interface{}) {
 func newError(module string, format string, args ...interface{}) error {
 	return fmt.Errorf("%s%s: %s", logPrefix, module, fmt.Sprintf(format, args...))
 }
-
-func repeatString(s string, n int) []string {
-	r := make([]string, 0, n)
-	for i := 0; i < n; i++ {
-		r = append(r, s)
-	}
-	return r
-}

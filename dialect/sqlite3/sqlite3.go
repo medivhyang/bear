@@ -15,7 +15,7 @@ func init() {
 
 type Dialect struct{}
 
-func (d *Dialect) Mapping(rt reflect.Type) string {
+func (d *Dialect) MappingType(rt reflect.Type) string {
 	if rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
 	}

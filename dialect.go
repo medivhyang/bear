@@ -11,7 +11,7 @@ var (
 )
 
 type Dialect interface {
-	Mapping(rt reflect.Type) string
+	MappingType(rt reflect.Type) string
 	Quote(s string) string
 }
 
