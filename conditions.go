@@ -25,7 +25,7 @@ func (cc Conditions) Appendf(format string, values ...interface{}) Conditions {
 func (cc Conditions) AppendMap(m map[string]interface{}) Conditions {
 	t := NewTemplate("")
 	for k, v := range m {
-		t.Appendf(fmt.Sprintf("%s = ?", k), v)
+		t = t.Appendf(fmt.Sprintf("%s = ?", k), v)
 	}
 	return cc.Append(t)
 }
@@ -46,10 +46,7 @@ func (cc Conditions) AppendIn(column string, values ...interface{}) Conditions {
 	if len(values) == 0 {
 		values = append(values, "null")
 	}
-	holders := make([]string, len(values))
-	for i := 0; i < len(values); i++ {
-		holders = append(holders, "?")
-	}
+	holders := repeatString("?", len(values))
 	format := fmt.Sprintf("%s in (%s)", GetDefaultDialect().Quote(column), strings.Join(holders, ", "))
 	return cc.Appendf(format, values...)
 }
